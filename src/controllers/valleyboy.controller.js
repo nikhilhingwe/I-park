@@ -48,7 +48,7 @@ exports.addValleyBoy = async (req, res) => {
          companyId,
          branchId,
          supervisorId,
-         role: 6,
+         role: 5,
        });
    
        await newValleyBoy.save();
