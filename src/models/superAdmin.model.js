@@ -23,6 +23,11 @@ const superAdminSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: 6,
     },
+    role: {
+      type: Number,
+      default: 1,
+      
+    },
   },
   {
     timestamps: true,

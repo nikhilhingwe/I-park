@@ -5,10 +5,12 @@ const router = express.Router();
 // const authRoutes = require("./auth.routes");
 const superAdminRoutes = require("./superAdmin.route");
 const userRoutes = require("./user.route");
+const valleyBoyRoutes = require("./valleyboy.route")
 
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
+router.use("/valleyboy",valleyBoyRoutes );
 
 
 // Prefix routes

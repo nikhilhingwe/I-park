@@ -28,7 +28,6 @@ exports.loginUser = async (req, res) => {
        if (!user) {
          return res.status(400).json({ message: 'Invalid credentials' });
        }
-       console.log("ssssssss", user);
    
        // Validate password
        const isMatch = await comparePassword(password, user.password);
@@ -42,6 +41,7 @@ exports.loginUser = async (req, res) => {
          {
            id: user._id,
            email: user.email,
+            role: user.role,
          },
          process.env.JWT_SECRET,
        );
