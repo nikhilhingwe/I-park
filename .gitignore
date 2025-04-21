@@ -1,0 +1,76 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.test
+.env.production
+.env.development
+.env.*.local
+
+# Compiled source
+dist/
+build/
+lib/
+coverage/
+.nyc_output/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# System files
+*.swp
+*.bak
+*.tmp
+
+# Debug
+debug.log
+
+# Optional npm cache
+.npm/
+
+# Optional Yarn cache
+.yarn/
+.pnp.*
+.yarnrc.yml
+
+# PM2 logs and configs
+pids/
+*.pid
+*.pid.lock
+logs/
+pm2.log
+
+# Docker files (optional, if using)
+docker-compose.override.yml
+docker-compose.dev.yml
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+uploads/
+temp/
+tmp/
