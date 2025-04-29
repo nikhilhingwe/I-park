@@ -6,11 +6,13 @@ const router = express.Router();
 const superAdminRoutes = require("./superAdmin.route");
 const userRoutes = require("./user.route");
 const valleyBoyRoutes = require("./valleyboy.route")
+const hotelRoutes = require("./hotel.route");
 
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
 router.use("/valleyboy",valleyBoyRoutes );
+router.use("/hotel",hotelRoutes );
 
 
 // Prefix routes

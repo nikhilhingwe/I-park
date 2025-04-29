@@ -63,4 +63,37 @@ exports.addValleyBoy = async (req, res) => {
      }
    };
    
-   
+exports.getValleyBoy = async (req, res) => {
+    const { role, id } = req.user;
+    const ObjectId = mongoose.Types.ObjectId;
+    let valleyBoys;
+  
+    try {
+      if (role === 'superadmin') {
+        valleyBoys = await ValleyBoy.find()
+          .populate("hotelId", "hotelName")
+          .populate("branchId", "branchName");
+      } else if (role === 'hotel') {
+        valleyBoys = await ValleyBoy.find({ hotelId: new ObjectId(id) })
+          .populate("hotelId", "hotelName")
+          .populate("branchId", "branchName");
+      } else if (role === 'branch') {
+        valleyBoys = await ValleyBoy.find({ branchId: new ObjectId(id) })
+          .populate("branchId", "branchName")
+          .populate("hotelId", "hotelName");
+      }
+  
+      valleyBoys?.forEach(valleyBoy => {
+        const decryptedPassword = decrypt(valleyBoy.password);
+        valleyBoy.password = decryptedPassword;
+      });
+  
+      if (!valleyBoys || valleyBoys.length === 0) {
+        return res.status(404).json({ message: "Valley boys not found" });
+      }
+  
+      res.status(200).json({ valleyBoys });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  };

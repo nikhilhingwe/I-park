@@ -1,8 +1,9 @@
 const express = require("express");
-const { addValleyBoy } = require("../controllers/valleyboy.controller");
+const { addValleyBoy, getValleyBoy } = require("../controllers/valleyboy.controller");
 
 const router = express.Router();
 
-router.post("/register", addValleyBoy);
+router.post("/add", addValleyBoy);
+router.get("/getAll", getValleyBoy);
 
 module.exports = router;
