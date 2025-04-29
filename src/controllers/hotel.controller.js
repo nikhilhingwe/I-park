@@ -48,3 +48,54 @@ exports.getHotels = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.updateHotel = async (req, res) => {
+  const { id } = req.params; 
+  const { name, email, password, address, phone } = req.body;
+
+  try {
+    const existingHotel = await Hotel.findById(id);
+    if (!existingHotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    if (email && email !== existingHotel.email) {
+      const existingUserByUsername = await findSameUsername(email);
+      if (existingUserByUsername.exists) {
+        return res.status(400).json({ message: "This email already exists" });
+      }
+      existingHotel.email = email;
+    }
+
+    // Update fields if provided
+    if (name) existingHotel.name = name;
+    if (password) existingHotel.password = encrypt(password);
+    if (address) existingHotel.address = address;
+    if (phone) existingHotel.phone = phone;
+
+    const updatedHotel = await existingHotel.save();
+
+    res.status(200).json({
+      hotel: updatedHotel,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+exports.deleteHotel = async (req, res) => {
+  const { id } = req.params; 
+
+  try {
+    const hotel = await Hotel.findByIdAndDelete(id);
+
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    res.status(200).json({ message: "Hotel deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
