@@ -54,7 +54,7 @@ exports.getBranches = async (req, res) => {
       const {role ,id} = req.user;
       try {
         let branchList;
-        if (role === "admin") {
+        if (role === "superadmin") {
           branchList = await Branch.find().populate("hotelId", "name email").lean();
         } else if (role === "hotel") {
           branchList = await Branch.find({ hotelId: id }).populate("hotelId", "name email").lean();
@@ -125,3 +125,19 @@ exports.updateBranch = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.deleteBranch = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const branch = await Branch.findByIdAndDelete(id);
+
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    res.status(200).json({ message: "Branch deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
