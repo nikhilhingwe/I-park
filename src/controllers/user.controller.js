@@ -11,7 +11,7 @@ const { comparePassword } = require("../utils/crypto");
 exports.loginUser = async (req, res) => {
      const { email, password } = req.body;
      let user;
-     let isMatch = false;
+    //  let isMatch = false;
    
      if (!email || !password) {
        return res.status(400).json({ message: 'Please enter valid details' });
@@ -19,7 +19,7 @@ exports.loginUser = async (req, res) => {
    
      try {
        // Find user in various collections
-       user = await SuperAdmin.findOne({ email });
+       user = await SuperAdmin.findOne({ email }).lean();
        if (!user) user = await Hotel.findOne({ email });
        if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
        if (!user) user = await Supervisor.findOne({ email }).populate("branchId", "email");
@@ -28,6 +28,7 @@ exports.loginUser = async (req, res) => {
        if (!user) {
          return res.status(400).json({ message: 'Invalid credentials' });
        }
+       console.log(password,user.password, "user found in db");
    
        // Validate password
        const isMatch = await comparePassword(password, user.password);
