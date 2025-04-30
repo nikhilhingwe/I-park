@@ -7,12 +7,16 @@ const superAdminRoutes = require("./superAdmin.route");
 const userRoutes = require("./user.route");
 const valleyBoyRoutes = require("./valleyboy.route")
 const hotelRoutes = require("./hotel.route");
+const branchRoutes = require("./branch.route");
+const branchGroupRoutes = require("./branchGroup.route");
 
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
 router.use("/valleyboy",valleyBoyRoutes );
 router.use("/hotel",hotelRoutes );
+router.use("/branchgroup",branchGroupRoutes );
+router.use("/branch",branchRoutes );
 
 
 // Prefix routes

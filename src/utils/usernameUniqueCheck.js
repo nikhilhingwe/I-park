@@ -3,6 +3,7 @@ const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
 const Supervisor = require("../models/supervisor.model");
 const ValleyBoy = require("../models/valleyboy.model");
+const BranchGroup = require("../models/branchGroup.model");
 
 
 const findSameUsername = async (email) => {
@@ -11,8 +12,8 @@ const findSameUsername = async (email) => {
 
     const queries = [
       Hotel.findOne({ email }).lean(),
+      BranchGroup.findOne({ email }).lean(),
       Branch.findOne({ email }).lean(),
-      Supervisor.findOne({ email }).lean(),
       ValleyBoy.findOne({ email }).lean(),
       SuperAdmin.findOne({ email }).lean(),
     ];
