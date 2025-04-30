@@ -5,7 +5,16 @@ const hotelSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   address: { type: String },
-  phone: { type: String },
-}, { timestamps: true });
+  phone: {
+    type: String,
+    validate: {
+      validator: function (v) {
+        return /^[0-9]{10}$/.test(v);
+      },
+      message: props => `${props.value} is not a valid 10-digit phone number!`
+    }
+  }
+}
+  , { timestamps: true });
 
 module.exports = mongoose.model("Hotel", hotelSchema);

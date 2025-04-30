@@ -4,10 +4,10 @@ const authauthenticate = require("../middleware/authMiddleware");
 const { addBranch, getBranches, updateBranch, deleteBranch } = require("../controllers/branch.controller");
 
 
-router.post("/add", addBranch);
+router.post("/add",authauthenticate, addBranch);
 router.get("/get",authauthenticate, getBranches);
-router.put("/update/:id", updateBranch);    
-// router.delete("/delete/:id", deleteBranch);
+router.put("/update/:id",authauthenticate, updateBranch);    
+router.delete("/delete/:id",authauthenticate, deleteBranch);
 
 module.exports = router;
 

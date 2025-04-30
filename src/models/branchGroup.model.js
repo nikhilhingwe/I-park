@@ -5,8 +5,16 @@ const branchGroupSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   address: { type: String },
-  phone: { type: String },
-  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true }
+  phone: {
+     type: String,
+     validate: {
+       validator: function (v) {
+         return /^[0-9]{10}$/.test(v);
+       },
+       message: props => `${props.value} is not a valid 10-digit phone number!`
+     }
+   },
+  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", }
 }, { timestamps: true });
 
 module.exports = mongoose.model("BranchGroup", branchGroupSchema);

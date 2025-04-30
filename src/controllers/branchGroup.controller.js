@@ -7,7 +7,7 @@ exports.addBranchGroup = async (req, res) => {
   try {
     const { userName, email, password, address, phone, hotelId } = req.body;
 
-    if (!userName || !email || !password || !hotelId) {
+    if (!userName || !email || !password ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -34,3 +34,106 @@ exports.addBranchGroup = async (req, res) => {
 };
 
 
+exports.getBranchGroups = async (req, res) => {
+  try {
+    const { role, id } = req.user;
+
+    let query = {};
+
+    if (role === "SuperAdmin") {
+     
+      query = {}; 
+    } else if (role === "hotel") {
+   
+      if (!id) {
+        return res.status(400).json({ message: "Hotel ID not found in user data" });
+      }
+      query = { hotelId: id };
+    } else {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const branchGroups = await BranchGroup.find({hotelId: id})
+      .populate("hotelId", "name email address phone");
+
+    res.status(200).json({
+      message: "BranchGroups retrieved successfully",
+      data: branchGroups,
+    });
+  } catch (error) {
+    console.error("Error retrieving BranchGroups:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+exports.updateBranchGroup = async (req, res) => {
+
+  const { id } = req.params;
+  const {
+    name,
+    email,
+    password,
+    phone,
+    branchGroupId
+  } = req.body;
+
+  try {
+    const user = await BranchGroup.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (email && email !== user.email) {
+      const existingUser = await findSameUsername(email);
+      if (existingUser.exists) {
+        return res.status(400).json({ message: "This email already exists" });
+      }
+      user.email = email;
+    }
+
+    if (branchGroupId && branchGroupId !== String(user.branchGroupId)) {
+      const group = await BranchGroup.findById(branchGroupId);
+      if (!group) {
+        return res.status(404).json({ message: "Branch Group not found" });
+      }
+      user.branchGroupId = branchGroupId;
+    }
+
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+
+    if (password) {
+      const encryptedPassword = encrypt(password);
+      user.password = encryptedPassword;
+    }
+
+    await user.save();
+
+    res.status(200).json({ message: "User updated successfully", user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+exports.deleteBranchGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedBranchGroup = await BranchGroup.findByIdAndDelete(id);
+
+    if (!deletedBranchGroup) {
+      return res.status(404).json({ message: "BranchGroup not found" });
+    }
+
+    res.status(200).json({
+      message: "BranchGroup deleted successfully",
+      data: deletedBranchGroup,
+    });
+  } catch (error) {
+    console.error("Error deleting BranchGroup:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

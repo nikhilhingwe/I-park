@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
-const { addBranchGroup} = require('../controllers/branchGroup.controller');
+const authauthenticate = require("../middleware/authMiddleware");
 
 
-router.post('/add', addBranchGroup);
-// router.get('/get', getBrachGroup);
-// router.put('/update/:id', updateBrachGroup);
+const { addBranchGroup, getBranchGroups, updateBranchGroup} = require('../controllers/branchGroup.controller');
+
+
+router.post('/add',authauthenticate, addBranchGroup);
+router.get('/get',authauthenticate, getBranchGroups);
+router.put('/update/:id',authauthenticate, updateBranchGroup);
 // router.delete('/delete/:id', deleteBrachGroup);
 
 module.exports = router;

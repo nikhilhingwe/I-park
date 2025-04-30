@@ -18,10 +18,14 @@ const superAdminSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
-    password: {
+    phone: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: 6,
+      validate: {
+        validator: function (v) {
+          return /^[0-9]{10}$/.test(v);
+        },
+        message: props => `${props.value} is not a valid 10-digit phone number!`
+      }
     },
     role: {
       type: Number,
