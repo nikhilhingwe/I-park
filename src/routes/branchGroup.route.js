@@ -10,6 +10,6 @@ const { addBranchGroup, getBranchGroups, updateBranchGroup, deleteBranchGroup} =
 router.post('/add',authauthenticate, addBranchGroup);
 router.get('/get',authauthenticate, getBranchGroups);
 router.put('/update/:id',authauthenticate, updateBranchGroup);
-router.delete('/delete/:id', deleteBranchGroup);
+router.delete('/delete/:id',authauthenticate, deleteBranchGroup);
 
 module.exports = router;

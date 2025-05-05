@@ -11,9 +11,9 @@ exports.addValleyBoy = async (req, res) => {
        phone,
        username,
        password,
-       companyId,
+       hotelId,
+       branchGroupId,
        branchId,
-       supervisorId,
      } = req.body;
    
      try {
@@ -26,13 +26,6 @@ exports.addValleyBoy = async (req, res) => {
        if (!username || !password) {
          return res.status(400).json({ message: "Username and password are required" });
        }
-   
-       let base64Image = null;
-   
-       if (req.file) {
-         const resizedImageBuffer = await handleImageProcessing(req.file);
-         base64Image = `${resizedImageBuffer.toString("base64")}`;
-       }
 
        
     // Encrypt the password
@@ -42,12 +35,11 @@ exports.addValleyBoy = async (req, res) => {
          name,
          email,
          phone,
-         profileImage: base64Image,
          username,
          password:encryptedPassword,
-         companyId,
+         hotelId,
+         branchGroupId,
          branchId,
-         supervisorId,
          role: 5,
        });
    
@@ -97,3 +89,83 @@ exports.getValleyBoy = async (req, res) => {
       res.status(500).json({ message: err.message });
     }
   };
+
+exports.updateValleyBoy = async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    email,
+    phone,
+    username,
+    password,
+    hotelId,
+    branchGroupId,
+    branchId,
+  } = req.body;
+
+  try {
+    const valleyBoy = await ValleyBoy.findById(id);
+    if (!valleyBoy) {
+      return res.status(404).json({ message: "ValleyBoy not found" });
+    }
+
+    if (username && username !== valleyBoy.username) {
+      const { exists } = await findSameUsername(username);
+      if (exists) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+    }
+
+    if (email && email !== valleyBoy.email) {
+      const existingEmail = await ValleyBoy.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+    }
+
+    const updateData = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(phone && { phone }),
+      ...(username && { username }),
+      ...(hotelId && { hotelId }),
+      ...(branchGroupId && { branchGroupId }),
+      ...(branchId && { branchId }),
+    };
+
+    if (password) {
+      updateData.password = await encrypt(password);
+    }
+
+    const updatedValleyBoy = await ValleyBoy.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true } 
+    );
+
+    res.status(200).json({
+      message: "ValleyBoy updated successfully",
+      valleyBoy: updatedValleyBoy,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteValleyBoy = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedValleyBoy = await ValleyBoy.findByIdAndDelete(id);
+
+    if (!deletedValleyBoy) {
+      return res.status(404).json({ message: "ValleyBoy not found" });
+    }
+
+    res.status(200).json({
+      message: "ValleyBoy deleted successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
