@@ -28,7 +28,6 @@ exports.loginUser = async (req, res) => {
        if (!user) {
          return res.status(400).json({ message: 'Invalid credentials' });
        }
-       console.log(password,user.password, "user found in db");
    
        // Validate password
        const isMatch = await comparePassword(password, user.password);
