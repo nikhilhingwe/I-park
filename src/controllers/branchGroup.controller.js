@@ -40,7 +40,7 @@ exports.getBranchGroups = async (req, res) => {
 
     let query = {};
 
-    if (role === "SuperAdmin") {
+    if (role === "superadmin") {
      
       query = {}; 
     } else if (role === "hotel") {
@@ -53,7 +53,7 @@ exports.getBranchGroups = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const branchGroups = await BranchGroup.find({hotelId: id})
+    const branchGroups = await BranchGroup.find(query)
       .populate("hotelId", "name email address phone");
 
     res.status(200).json({
