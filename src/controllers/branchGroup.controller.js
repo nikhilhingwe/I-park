@@ -5,7 +5,7 @@ const findSameUsername = require("../utils/usernameUniqueCheck");
 
 exports.addBranchGroup = async (req, res) => {
   try {
-    const { userName, email, password, address, phone, hotelId } = req.body;
+    const { userName, email, password, address, phone, hotelId, assignedBranchsId } = req.body;
 
     if (!userName || !email || !password ) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -22,6 +22,7 @@ exports.addBranchGroup = async (req, res) => {
       address,
       phone,
       hotelId,
+      assignedBranchsId
     });
 
     await newBranchGroup.save();
@@ -53,7 +54,7 @@ exports.getBranchGroups = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const branchGroups = await BranchGroup.find(query)
+    const branchGroups = await BranchGroup.find(query).populate("assignedBranchsId", "name email address phone")
       .populate("hotelId", "name email address phone");
 
     res.status(200).json({
@@ -75,6 +76,7 @@ exports.updateBranchGroup = async (req, res) => {
     email,
     password,
     phone,
+    assignedBranchsId,
     branchGroupId
   } = req.body;
 
@@ -102,6 +104,7 @@ exports.updateBranchGroup = async (req, res) => {
 
     if (name) user.name = name;
     if (phone) user.phone = phone;
+    if (assignedBranchsId) user.assignedBranchsId = assignedBranchsId;
 
     if (password) {
       const encryptedPassword = encrypt(password);

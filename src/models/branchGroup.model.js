@@ -4,6 +4,7 @@ const branchGroupSchema = new mongoose.Schema({
   userName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  assignedBranchsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "Branch" }],
   address: { type: String },
   phone: {
      type: String,

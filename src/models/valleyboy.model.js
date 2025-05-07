@@ -17,7 +17,7 @@ const valleyBoySchema = new mongoose.Schema({
   profileImage: { type: String }, // Base64 string
   hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true },
   branchId: { type: mongoose.Schema.Types.ObjectId, ref: "Branch", required: true },
-  branchGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BranchGroup", required: true },
+  branchGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "BranchGroup", default:null },
   role: { type: Number, default: 5 }
 }, { timestamps: true });
 
