@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const SuperAdmin = require("../models/superAdmin.model");
 const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
-const Supervisor = require("../models/supervisor.model");
+const BranchGroup = require("../models/branchGroup.model");
 const ValleyBoy = require("../models/valleyboy.model");
 
 
@@ -35,14 +35,14 @@ const authenticate = async(req, res, next) => {
               req.user = { id: user._id, role: 'branch',hoteld:user.companyId, };
               sperr = true;
           } else {
-              user = await Supervisor.findById(decoded.id);
+              user = await BranchGroup.findById(decoded.id);
               if (user) {
-                  req.user = { id: user._id, role: 'supervisor',companyId:user.companyId,branchId:user.branchId };
+                  req.user = { id: user._id, role: 'branchGroup',hotelId:user.hotelId,assignedBranchsId:user.assignedBranchsId };
                   sperr = true;
               } else {
                   user = await ValleyBoy.findById(decoded.id);
                   if (user) {
-                      req.user = { id: user._id, role: 'valley',companyId:user.companyId,branchId:user.branchId,supervisorId:user.supervisorId };
+                      req.user = { id: user._id, role: 'valley',hotelId:user.hotelId,branchId:user.branchId, };
                       sperr = true;
                   } else {
                       // Handle case where no matching user is found

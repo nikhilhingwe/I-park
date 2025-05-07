@@ -1,7 +1,7 @@
 const SuperAdmin = require("../models/superAdmin.model");
 const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
-const Supervisor = require("../models/supervisor.model");
+const BranchGroup = require("../models/branchGroup.model");
 const ValleyBoy = require("../models/valleyboy.model");
 const jwt = require('jsonwebtoken');
 const { comparePassword } = require("../utils/crypto");
@@ -22,7 +22,8 @@ exports.loginUser = async (req, res) => {
        user = await SuperAdmin.findOne({ email }).lean();
        if (!user) user = await Hotel.findOne({ email });
        if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
-       if (!user) user = await Supervisor.findOne({ email }).populate("branchId", "email");
+       if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
+       if (!user) user = await BranchGroup.findOne({ email }).populate("assignedBranchsId", "email");
        if (!user) user = await ValleyBoy.findOne({ email }).populate("supervisorId", "email");
    
        if (!user) {
