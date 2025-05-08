@@ -24,7 +24,7 @@ exports.loginUser = async (req, res) => {
        if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
        if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
        if (!user) user = await BranchGroup.findOne({ email }).populate("assignedBranchsId", "email");
-       if (!user) user = await ValleyBoy.findOne({ email }).populate("supervisorId", "email");
+       if (!user) user = await ValleyBoy.findOne({ email }).populate( "email");
    
        if (!user) {
          return res.status(400).json({ message: 'Invalid credentials' });

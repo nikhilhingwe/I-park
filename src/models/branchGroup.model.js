@@ -15,7 +15,8 @@ const branchGroupSchema = new mongoose.Schema({
        message: props => `${props.value} is not a valid 10-digit phone number!`
      }
    },
-  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", }
+  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", },
+  role: { type: Number, default: 4 }, // 4 for branch group
 }, { timestamps: true });
 
 module.exports = mongoose.model("BranchGroup", branchGroupSchema);

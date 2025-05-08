@@ -14,7 +14,8 @@ const branchSchema = new mongoose.Schema({
       message: props => `${props.value} is not a valid 10-digit phone number!`
     }
   },
-  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true }
+  hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true },
+  role: { type: Number, default: 3 }, // 3 for branch
 }, { timestamps: true });
 
 module.exports = mongoose.model("Branch", branchSchema);

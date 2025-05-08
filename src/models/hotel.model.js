@@ -13,8 +13,10 @@ const hotelSchema = new mongoose.Schema({
       },
       message: props => `${props.value} is not a valid 10-digit phone number!`
     }
-  }
-}
-  , { timestamps: true });
+  },
+  role: { type: Number, default: 2 },
+},
+  // 2 for hotel
+  { timestamps: true });
 
 module.exports = mongoose.model("Hotel", hotelSchema);
