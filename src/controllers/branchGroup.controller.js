@@ -1,5 +1,5 @@
 const BranchGroup = require("../models/branchGroup.model");
-const { encrypt } = require("../utils/crypto");
+const { encrypt, decrypt } = require("../utils/crypto");
 const findSameUsername = require("../utils/usernameUniqueCheck");
 
 
@@ -55,12 +55,18 @@ exports.getBranchGroups = async (req, res) => {
     }
 
     const branchGroups = await BranchGroup.find(query).populate("assignedBranchsId", "name email address phone")
-      .populate("hotelId", "name email address phone");
+      .populate("hotelId", "name email address phone").lean();
 
     res.status(200).json({
       message: "BranchGroups retrieved successfully",
-      data: branchGroups,
+      data: branchGroups.map(bg => {
+        return {
+          ...bg,
+          password: decrypt(bg.password)
+        };
+      })
     });
+   
   } catch (error) {
     console.error("Error retrieving BranchGroups:", error);
     res.status(500).json({ message: "Internal server error" });
