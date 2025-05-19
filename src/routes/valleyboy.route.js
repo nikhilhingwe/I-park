@@ -4,7 +4,7 @@ const { addValleyBoy, getValleyBoy, updateValleyBoy, deleteValleyBoy } = require
 const router = express.Router();
 
 router.post("/add", addValleyBoy);
-router.get("/getAll", getValleyBoy);
+router.get("/get", getValleyBoy);
 router.put("/update/:id", updateValleyBoy);
 router.delete("/delete/:id", deleteValleyBoy);
 

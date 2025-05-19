@@ -43,6 +43,7 @@ exports.loginUser = async (req, res) => {
            id: user._id,
            email: user.email,
             role: user.role,
+            assingedBranchsId: user?.assignedBranchsId,
          },
          process.env.JWT_SECRET,
        );

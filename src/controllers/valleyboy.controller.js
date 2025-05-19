@@ -1,7 +1,9 @@
 const findSameUsername = require("../utils/usernameUniqueCheck");
 const ValleyBoy = require("../models/valleyboy.model");
 const { encrypt } = require("../utils/crypto");
-
+const mongoose = require("mongoose");
+const { decrypt } = require("../utils/crypto");
+ 
 
 
 exports.addValleyBoy = async (req, res) => {
@@ -56,13 +58,15 @@ exports.addValleyBoy = async (req, res) => {
    };
    
 exports.getValleyBoy = async (req, res) => {
-    const { role, id } = req.user;
+    const { role, id,assignedBranchsId } = req.user;
     const ObjectId = mongoose.Types.ObjectId;
     let valleyBoys;
+    console.log("aaaaaaaaaaaaaaaaaa",req.user)
+    console.log("aaaaaaaaaaaaaaaaaa",assignedBranchsId)
   
     try {
       if (role === 'superadmin') {
-        valleyBoys = await ValleyBoy.find()
+        valleyBoys = await ValleyBoy.find() 
           .populate("hotelId", "hotelName")
           .populate("branchId", "branchName");
       } else if (role === 'hotel') {
@@ -73,8 +77,14 @@ exports.getValleyBoy = async (req, res) => {
         valleyBoys = await ValleyBoy.find({ branchId: new ObjectId(id) })
           .populate("branchId", "branchName")
           .populate("hotelId", "hotelName");
-      }
-  
+      }else if (role === 'branchGroup') {
+
+         valleyBoys = await ValleyBoy.find({
+  branchId: { $in: assignedBranchsId }
+})
+  .populate("branchId", "branchName")
+  .populate("hotelId",  "hotelName");
+}  
       valleyBoys?.forEach(valleyBoy => {
         const decryptedPassword = decrypt(valleyBoy.password);
         valleyBoy.password = decryptedPassword;
@@ -84,7 +94,7 @@ exports.getValleyBoy = async (req, res) => {
         return res.status(404).json({ message: "Valley boys not found" });
       }
   
-      res.status(200).json({ valleyBoys });
+      res.status(200).json( valleyBoys );
     } catch (err) {
       res.status(500).json({ message: err.message });
     }

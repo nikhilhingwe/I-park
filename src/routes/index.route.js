@@ -9,11 +9,12 @@ const valleyBoyRoutes = require("./valleyboy.route")
 const hotelRoutes = require("./hotel.route");
 const branchRoutes = require("./branch.route");
 const branchGroupRoutes = require("./branchGroup.route");
+const authenticate = require("../middleware/authMiddleware");
 
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
-router.use("/valleyboy",valleyBoyRoutes );
+router.use("/valleyboy",authenticate,valleyBoyRoutes );
 router.use("/hotel",hotelRoutes );
 router.use("/branchgroup",branchGroupRoutes );
 router.use("/branch",branchRoutes );
