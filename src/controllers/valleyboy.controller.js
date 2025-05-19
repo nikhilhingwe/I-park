@@ -67,23 +67,23 @@ exports.getValleyBoy = async (req, res) => {
     try {
       if (role === 'superadmin') {
         valleyBoys = await ValleyBoy.find() 
-          .populate("hotelId", "hotelName")
-          .populate("branchId", "branchName");
+          .populate("hotelId", "name")
+          .populate("branchId", "name");
       } else if (role === 'hotel') {
         valleyBoys = await ValleyBoy.find({ hotelId: new ObjectId(id) })
-          .populate("hotelId", "hotelName")
-          .populate("branchId", "branchName");
+          .populate("hotelId", "name")
+          .populate("branchId", "name");
       } else if (role === 'branch') {
         valleyBoys = await ValleyBoy.find({ branchId: new ObjectId(id) })
-          .populate("branchId", "branchName")
-          .populate("hotelId", "hotelName");
+          .populate("branchId", "name")
+          .populate("hotelId", "name");
       }else if (role === 'branchGroup') {
 
          valleyBoys = await ValleyBoy.find({
   branchId: { $in: assignedBranchsId }
 })
-  .populate("branchId", "branchName")
-  .populate("hotelId",  "hotelName");
+  .populate("branchId", "name")
+  .populate("hotelId",  "name");
 }  
       valleyBoys?.forEach(valleyBoy => {
         const decryptedPassword = decrypt(valleyBoy.password);
