@@ -31,9 +31,9 @@ exports.loginUser = async (req, res) => {
       user = await BranchGroup.findOne({ email }).populate(
         "assignedBranchsId",
         "email",
-        "hotelId",
-        
-      );
+         
+      ).populate("hotelId", "email");
+     
     if (!user) user = await ValleyBoy.findOne({ email }).populate("email", "hotelId","branchId");
 
     if (!user) {
