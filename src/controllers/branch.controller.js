@@ -2,6 +2,7 @@ const Branch = require("../models/branch.model");
 const Hotel = require("../models/hotel.model");
 const { encrypt, decrypt } = require("../utils/crypto");
 const findSameUsername = require("../utils/usernameUniqueCheck");
+const BranchGroup = require("../models/branchGroup.model");
 
 
 
@@ -51,18 +52,15 @@ if (existingUserByUsername.exists) {
 
 exports.getBranches = async (req, res) => {
 
-      const {role ,id} = req.user;
+      const {role ,id,assignedBranchsId} = req.user;
       try {
         let branchList;
         if (role === "superadmin") {
           branchList = await Branch.find().populate("hotelId", "name email").lean();
         } else if (role === "hotel") {
           branchList = await Branch.find({ hotelId: id }).populate("hotelId", "name email").lean();
-        } else if (role === "BranchGroup") {
-          branchList = await BranchGroup.find({ supervisorId: id }).populate({
-            path: "branchId",
-            populate: { path: "hotelId", select: "name email" },
-          }).lean();
+        } else if (role === "branchGroup") {
+          branchList = await Branch.find({ _id:  { $in: assignedBranchsId }}).lean();
         } else {
           return res.status(403).json({ message: "Access denied" });
         }
