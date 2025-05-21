@@ -60,7 +60,7 @@ exports.getBranches = async (req, res) => {
         } else if (role === "hotel") {
           branchList = await Branch.find({ hotelId: id }).populate("hotelId", "name email").lean();
         } else if (role === "branchGroup") {
-          branchList = await Branch.find({ _id:  { $in: assignedBranchsId }}).lean();
+          branchList = await Branch.find({ _id:  { $in: assignedBranchsId }}).populate("hotelId", "name email address").lean();
         } else {
           return res.status(403).json({ message: "Access denied" });
         }
