@@ -7,7 +7,7 @@ exports.addBranchGroup = async (req, res) => {
   try {
     const { userName, email, password, address, phone, hotelId, assignedBranchsId } = req.body;
 
-    if (!userName || !email || !password ) {
+    if (!userName || !email || !password ||!hotelId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
