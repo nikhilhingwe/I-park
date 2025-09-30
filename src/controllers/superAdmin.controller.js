@@ -1,10 +1,9 @@
 const SuperAdmin = require("../models/superAdmin.model");
 const { encrypt, decrypt } = require("../utils/crypto");
 
-
-               // 🔐 Register SuperAdmin
+// 🔐 Register SuperAdmin
 exports.registerSuperAdmin = async (req, res) => {
-  const { name, username,email, password, phone } = req.body;
+  const { name, username, email, password, phone } = req.body;
 
   try {
     // Check if SuperAdmin already exists
@@ -35,7 +34,7 @@ exports.registerSuperAdmin = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "SuperAdmin registered successfully",
-      data: newSuperAdmin
+      data: newSuperAdmin,
     });
   } catch (error) {
     console.error(error);
@@ -46,8 +45,7 @@ exports.registerSuperAdmin = async (req, res) => {
   }
 };
 
-
-               // 🔐 Login SuperAdmin
+// 🔐 Login SuperAdmin
 exports.loginSuperAdmin = async (req, res) => {
   const { email, password } = req.body;
 
@@ -91,4 +89,3 @@ exports.loginSuperAdmin = async (req, res) => {
     });
   }
 };
-   

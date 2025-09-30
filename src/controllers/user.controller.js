@@ -22,19 +22,21 @@ exports.loginUser = async (req, res) => {
     if (!user)
       user = await Branch.findOne({ email }).populate(
         "hotelId",
-        "email",
+        "email"
         // "name",
-        
       );
     //  if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
     if (!user)
-      user = await BranchGroup.findOne({ email }).populate(
-        "assignedBranchsId",
+      user = await BranchGroup.findOne({ email })
+        .populate("assignedBranchsId", "email")
+        .populate("hotelId", "email");
+
+    if (!user)
+      user = await ValleyBoy.findOne({ email }).populate(
         "email",
-         
-      ).populate("hotelId", "email");
-     
-    if (!user) user = await ValleyBoy.findOne({ email }).populate("email", "hotelId","branchId");
+        "hotelId",
+        "branchId"
+      );
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -47,18 +49,36 @@ exports.loginUser = async (req, res) => {
         .status(400)
         .json({ message: "Incorrect password or email ID" });
     }
+    console.log(process.env.JWT_SECRET);
+
     // Generate JWT token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        hotelId: user?.hotelId,
-        branchId: user?.branchId,
-        assingedBranchsId: user?.assignedBranchsId,
-      },
-      process.env.JWT_SECRET
-    );
+    // const token = jwt.sign(
+    //   {
+    //     id: user._id,
+    //     email: user.email,
+    //     role: user.role,
+    //     hotelId: user?.hotelId,
+    //     branchId: user?.branchId,
+    //     assingedBranchsId: user?.assignedBranchsId,
+    //   },
+    //   process.env.JWT_SECRET
+    // );
+
+    const payload = {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Add optional fields if they exist
+    if (user.hotelId) payload.hotelId = user.hotelId;
+    if (user.branchId) payload.branchId = user.branchId;
+    if (user.assignedBranchsId)
+      payload.assignedBranchsId = user.assignedBranchsId;
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
     res.status(200).json({
       message: "Successful Login",

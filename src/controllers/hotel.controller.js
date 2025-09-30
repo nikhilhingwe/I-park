@@ -2,29 +2,31 @@ const Hotel = require("../models/hotel.model");
 const { encrypt, decrypt } = require("../utils/crypto");
 const findSameUsername = require("../utils/usernameUniqueCheck");
 
-
 exports.createHotel = async (req, res) => {
-  const { name, email,password, address, phone } = req.body;
+  const { name, email, password, address, phone } = req.body;
+
+  console.log(req.body);
+
+  console.log(name, email, password, phone, address);
 
   try {
-       
-       // Check if hotel email already exists
-       const existingUserByUsername = await findSameUsername(email);
+    // Check if hotel email already exists
+    const existingUserByUsername = await findSameUsername(email);
     if (existingUserByUsername.exists) {
       return res.status(400).json({ message: "This email already exists" });
     }
-    
+
     const encryptedPassword = encrypt(password);
-    
+
     const newHotel = new Hotel({
-         name,
-         email,
-         password:encryptedPassword,
-         address,
-         phone
-     });
-     
-     const hotel = await newHotel.save();
+      name,
+      email,
+      password: encryptedPassword,
+      address,
+      phone,
+    });
+
+    const hotel = await newHotel.save();
 
     res.status(201).json({
       hotel: hotel,
@@ -38,7 +40,7 @@ exports.getHotels = async (req, res) => {
   try {
     const hotelList = await Hotel.find();
 
-    hotelList?.forEach(item => {
+    hotelList?.forEach((item) => {
       const decryptedPwd = decrypt(item.password);
       item.password = decryptedPwd;
     });
@@ -50,7 +52,7 @@ exports.getHotels = async (req, res) => {
 };
 
 exports.updateHotel = async (req, res) => {
-  const { id } = req.params; 
+  const { id } = req.params;
   const { name, email, password, address, phone } = req.body;
 
   try {
@@ -83,9 +85,8 @@ exports.updateHotel = async (req, res) => {
   }
 };
 
-
 exports.deleteHotel = async (req, res) => {
-  const { id } = req.params; 
+  const { id } = req.params;
 
   try {
     const hotel = await Hotel.findByIdAndDelete(id);

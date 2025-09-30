@@ -6,8 +6,9 @@ const routes = require("../src/routes/index.route");
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Use combined routes
-app.use("/api", routes); 
+app.use("/api", routes);
 
 module.exports = app;
