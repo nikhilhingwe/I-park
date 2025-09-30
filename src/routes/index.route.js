@@ -5,20 +5,20 @@ const router = express.Router();
 // const authRoutes = require("./auth.routes");
 const superAdminRoutes = require("./superAdmin.route");
 const userRoutes = require("./user.route");
-const valleyBoyRoutes = require("./valleyboy.route")
+const valleyBoyRoutes = require("./valleyboy.route");
 const hotelRoutes = require("./hotel.route");
 const branchRoutes = require("./branch.route");
 const branchGroupRoutes = require("./branchGroup.route");
+const parkingRoutes = require("./parking.routes");
 const authenticate = require("../middleware/authMiddleware");
-
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
-router.use("/valleyboy",authenticate,valleyBoyRoutes );
-router.use("/hotel",hotelRoutes );
-router.use("/branchgroup",branchGroupRoutes );
-router.use("/branch",branchRoutes );
-
+router.use("/valleyboy", authenticate, valleyBoyRoutes);
+router.use("/hotel", hotelRoutes);
+router.use("/branchgroup", branchGroupRoutes);
+router.use("/branch", branchRoutes);
+router.use("/parking", parkingRoutes);
 
 // Prefix routes
 // router.use("/users", userRoutes);
