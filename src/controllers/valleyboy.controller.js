@@ -5,6 +5,9 @@ const mongoose = require("mongoose");
 const { decrypt } = require("../utils/crypto");
 const QRCode = require("qrcode");
 
+const Hotel = require("../models/hotel.model");
+const Branch = require("../models/branch.model");
+
 exports.addValleyBoy = async (req, res) => {
   const {
     name,
@@ -281,55 +284,211 @@ exports.toggleValleyBoyStatus = async (req, res) => {
 //   }
 // };
 
+// exports.generateValleyBoyQR = async (req, res) => {
+//   const { id } = req.params; // optional
+
+//   try {
+//     let valleyBoys;
+
+//     if (id) {
+//       // Single ValleyBoy by ID
+//       const singleValleyBoy = await ValleyBoy.findById(id)
+//         .populate("hotelId", "name")
+//         .populate("branchId", "name")
+//         .populate("branchGroupId", "username");
+
+//       if (!singleValleyBoy) {
+//         return res.status(404).json({ message: "ValleyBoy not found" });
+//       }
+
+//       valleyBoys = [singleValleyBoy];
+//     } else {
+//       // All online ValleyBoys
+//       valleyBoys = await ValleyBoy.find({ isOnline: true })
+//         .populate("hotelId", "name")
+//         .populate("branchId", "name")
+//         .populate("branchGroupId", "username");
+
+//       if (!valleyBoys.length) {
+//         return res.status(404).json({ message: "No online ValleyBoys found" });
+//       }
+//     }
+
+//     const qrCodes = [];
+
+//     for (const valleyBoy of valleyBoys) {
+//       // Instead of JSON, encode a frontend URL for redirection
+//       const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${valleyBoy._id}`;
+
+//       const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
+
+//       qrCodes.push({
+//         valleyBoyId: valleyBoy._id,
+//         name: valleyBoy.name,
+//         qrCode: qrCodeDataURL,
+//       });
+//     }
+
+//     res.status(200).json({
+//       message: id
+//         ? "QR code generated for ValleyBoy"
+//         : "QR codes generated for all online ValleyBoys",
+//       qrCodes,
+//     });
+//   } catch (err) {
+//     console.error("Error generating QR codes:", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// const QRCode = require("qrcode");
+// const ValleyBoy = require("../models/ValleyBoy");
+
+// exports.generateValleyBoyQR = async (req, res) => {
+//   const { id } = req.params; // optional single ValleyBoy
+//   const { role, id: userId, hotelId, branchId, branchGroupId } = req.user; // from authenticate middleware
+
+//   try {
+//     let query = {};
+
+//     // Role-based filtering
+//     switch (role) {
+//       case "superadmin":
+//         // No filter, can access all ValleyBoys
+//         break;
+
+//       case "hotel":
+//         if (!hotelId)
+//           return res.status(400).json({ message: "Hotel ID missing" });
+//         query.hotelId = hotelId;
+//         break;
+
+//       case "branch":
+//         if (!branchId)
+//           return res.status(400).json({ message: "Branch ID missing" });
+//         query.branchId = branchId;
+//         break;
+
+//       case "branchGroup":
+//         if (!branchGroupId)
+//           return res.status(400).json({ message: "BranchGroup ID missing" });
+//         query.branchGroupId = branchGroupId;
+//         break;
+
+//       default:
+//         return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     // If a specific ValleyBoy ID is provided, filter by it
+//     if (id) query._id = id;
+
+//     // Only consider online ValleyBoys
+//     query.isOnline = true;
+
+//     // Fetch ValleyBoys based on the query
+//     const valleyBoys = await ValleyBoy.find(query)
+//       .populate("hotelId", "name")
+//       .populate("branchId", "name")
+//       .populate("branchGroupId", "username");
+
+//     if (!valleyBoys.length) {
+//       return res.status(404).json({ message: "No ValleyBoys found" });
+//     }
+
+//     // Generate QR codes
+//     const qrCodes = [];
+//     for (const vb of valleyBoys) {
+//       const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${vb._id}`;
+//       const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
+
+//       qrCodes.push({
+//         valleyBoyId: vb._id,
+//         name: vb.name,
+//         qrCode: qrCodeDataURL,
+//       });
+//     }
+
+//     res.status(200).json({
+//       message: id
+//         ? "QR code generated for ValleyBoy"
+//         : "QR codes generated for all online ValleyBoys within your role scope",
+//       qrCodes,
+//     });
+//   } catch (err) {
+//     console.error("Error generating QR codes:", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 exports.generateValleyBoyQR = async (req, res) => {
-  const { id } = req.params; // optional
+  const { id } = req.params; // optional: single ValleyBoy
+  const { role, id: userId, hotelId, branchId, branchGroupId } = req.user;
 
   try {
-    let valleyBoys;
+    const query = { isOnline: true }; // only online ValleyBoys
 
-    if (id) {
-      // Single ValleyBoy by ID
-      const singleValleyBoy = await ValleyBoy.findById(id)
-        .populate("hotelId", "name")
-        .populate("branchId", "name")
-        .populate("branchGroupId", "username");
+    // Role-based filtering
+    switch (role) {
+      case "superadmin":
+        // No filter
+        break;
 
-      if (!singleValleyBoy) {
-        return res.status(404).json({ message: "ValleyBoy not found" });
-      }
+      case "hotel":
+        if (!hotelId)
+          return res.status(400).json({ message: "Hotel ID missing" });
+        query.hotelId = hotelId;
+        break;
 
-      valleyBoys = [singleValleyBoy];
-    } else {
-      // All online ValleyBoys
-      valleyBoys = await ValleyBoy.find({ isOnline: true })
-        .populate("hotelId", "name")
-        .populate("branchId", "name")
-        .populate("branchGroupId", "username");
+      case "branch":
+        if (!branchId)
+          return res.status(400).json({ message: "Branch ID missing" });
+        query.branchId = branchId;
+        break;
 
-      if (!valleyBoys.length) {
-        return res.status(404).json({ message: "No online ValleyBoys found" });
-      }
+      case "branchGroup":
+        if (!branchGroupId)
+          return res.status(400).json({ message: "BranchGroup ID missing" });
+        query.branchGroupId = branchGroupId;
+        break;
+
+      default:
+        return res.status(403).json({ message: "Unauthorized role" });
     }
 
-    const qrCodes = [];
+    // If a specific ValleyBoy ID is provided, filter by it
+    if (id) query._id = id;
 
-    for (const valleyBoy of valleyBoys) {
-      // Instead of JSON, encode a frontend URL for redirection
-      const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${valleyBoy._id}`;
+    // Fetch ValleyBoys based on the query
+    let valleyBoys = await ValleyBoy.find(query)
+      .populate("hotelId", "name email")
+      .populate("branchId", "name email")
+      .populate("branchGroupId", "username")
+      .lean(); // convert to plain JS objects
 
-      const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
-
-      qrCodes.push({
-        valleyBoyId: valleyBoy._id,
-        name: valleyBoy.name,
-        qrCode: qrCodeDataURL,
-      });
+    if (!valleyBoys.length) {
+      return res.status(404).json({ message: "No ValleyBoys found" });
     }
+
+    // Generate QR codes and include hotel/branch info
+    const qrCodes = await Promise.all(
+      valleyBoys.map(async (vb) => {
+        const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${vb._id}`;
+        const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
+
+        return {
+          valleyBoyId: vb._id,
+          name: vb.name,
+          hotel: vb.hotelId || null,
+          branch: vb.branchId || null,
+          qrCode: qrCodeDataURL,
+        };
+      })
+    );
 
     res.status(200).json({
       message: id
         ? "QR code generated for ValleyBoy"
-        : "QR codes generated for all online ValleyBoys",
+        : "QR codes generated for all online ValleyBoys within your role scope",
       qrCodes,
     });
   } catch (err) {

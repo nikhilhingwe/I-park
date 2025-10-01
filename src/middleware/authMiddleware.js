@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const Verification = require("../models/verification.model");
 const SuperAdmin = require("../models/superAdmin.model");
 const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
@@ -6,16 +7,30 @@ const BranchGroup = require("../models/branchGroup.model");
 const ValleyBoy = require("../models/valleyboy.model");
 
 const authenticate = async (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", ""); // Extract token from headers
-
+  let token = req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    token = authHeader && authHeader.split(" ")[1];
+  }
   if (!token) {
     return res.status(401).json({ message: "Authorization token is required" });
   }
 
   try {
-    // Verify the token
+    // Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Fast token check: must match any valid DB token for user and not be expired
+    const dbToken = await Verification.findOne({
+      userId: decoded.id,
+      token,
+      expireAt: { $gt: new Date() },
+    });
+    if (!dbToken) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    // Assign user role and details (only if token matches)
     let user;
     let sperr = false;
     user = await SuperAdmin.findById(decoded.id);
@@ -53,7 +68,6 @@ const authenticate = async (req, res, next) => {
               };
               sperr = true;
             } else {
-              // Handle case where no matching user is found
               req.user = null;
               sperr = false;
             }

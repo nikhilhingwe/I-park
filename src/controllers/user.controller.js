@@ -1,3 +1,4 @@
+const Verification = require("../models/verification.model");
 const SuperAdmin = require("../models/superAdmin.model");
 const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
@@ -9,7 +10,7 @@ const { comparePassword } = require("../utils/crypto");
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   let user;
-  //  let isMatch = false;
+  let userModel = null;
 
   if (!email || !password) {
     return res.status(400).json({ message: "Please enter valid details" });
@@ -18,25 +19,25 @@ exports.loginUser = async (req, res) => {
   try {
     // Find user in various collections
     user = await SuperAdmin.findOne({ email }).lean();
-    if (!user) user = await Hotel.findOne({ email });
-    if (!user)
-      user = await Branch.findOne({ email }).populate(
-        "hotelId",
-        "email"
-        // "name",
-      );
-    //  if (!user) user = await Branch.findOne({ email }).populate("hotelId", "email");
-    if (!user)
+    if (user) userModel = "SuperAdmin";
+    if (!user) {
+      user = await Hotel.findOne({ email });
+      if (user) userModel = "Hotel";
+    }
+    if (!user) {
+      user = await Branch.findOne({ email }).populate("hotelId", "email");
+      if (user) userModel = "Branch";
+    }
+    if (!user) {
       user = await BranchGroup.findOne({ email })
         .populate("assignedBranchsId", "email")
         .populate("hotelId", "email");
-
-    if (!user)
-      user = await ValleyBoy.findOne({ email }).populate(
-        "email",
-        "hotelId",
-        "branchId"
-      );
+      if (user) userModel = "BranchGroup";
+    }
+    if (!user) {
+      user = await ValleyBoy.findOne({ email }).populate("hotelId branchId");
+      if (user) userModel = "ValleyBoy";
+    }
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -49,28 +50,13 @@ exports.loginUser = async (req, res) => {
         .status(400)
         .json({ message: "Incorrect password or email ID" });
     }
-    console.log(process.env.JWT_SECRET);
 
     // Generate JWT token
-    // const token = jwt.sign(
-    //   {
-    //     id: user._id,
-    //     email: user.email,
-    //     role: user.role,
-    //     hotelId: user?.hotelId,
-    //     branchId: user?.branchId,
-    //     assingedBranchsId: user?.assignedBranchsId,
-    //   },
-    //   process.env.JWT_SECRET
-    // );
-
     const payload = {
       id: user._id,
       email: user.email,
       role: user.role,
     };
-
-    // Add optional fields if they exist
     if (user.hotelId) payload.hotelId = user.hotelId;
     if (user.branchId) payload.branchId = user.branchId;
     if (user.assignedBranchsId)
@@ -80,10 +66,37 @@ exports.loginUser = async (req, res) => {
       expiresIn: "1d",
     });
 
+    // Store token in Verification model
+    const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day expiry
+    await Verification.create({
+      userId: user._id,
+      userModel,
+      token,
+      expireAt,
+    });
+
     res.status(200).json({
       message: "Successful Login",
       token,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.logoutUser = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
+    if (!token) return res.status(400).json({ message: "No token provided" });
+
+    const deleted = await Verification.findOneAndDelete({ token });
+    if (!deleted) {
+      return res
+        .status(404)
+        .json({ message: "Token not found or already deleted" });
+    }
+    res.status(200).json({ message: "Logout successful" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
