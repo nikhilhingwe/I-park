@@ -1,10 +1,8 @@
 const mongoose = require("mongoose");
 
-const toObjectId = (value) => {
+exports.toObjectId = (value) => {
   if (mongoose.Types.ObjectId.isValid(value)) {
-    return mongoose.Types.ObjectId(value);
+    return new mongoose.Types.ObjectId(value); // ✅ Use `new`
   }
   return null;
 };
-
-module.exports = { toObjectId };

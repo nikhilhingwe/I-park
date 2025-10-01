@@ -40,7 +40,7 @@ const authenticate = async (req, res, next) => {
     } else {
       user = await Hotel.findById(decoded.id);
       if (user) {
-        req.user = { id: user._id, role: "hotel" };
+        req.user = { id: user._id, role: "hotel", hotelId: user._id };
         sperr = true;
       } else {
         user = await Branch.findById(decoded.id);
