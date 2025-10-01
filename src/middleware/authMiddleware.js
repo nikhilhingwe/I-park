@@ -45,7 +45,7 @@ const authenticate = async (req, res, next) => {
       } else {
         user = await Branch.findById(decoded.id);
         if (user) {
-          req.user = { id: user._id, role: "branch", hoteld: user.companyId };
+          req.user = { id: user._id, role: "branch", branchId: user._id };
           sperr = true;
         } else {
           user = await BranchGroup.findById(decoded.id);
