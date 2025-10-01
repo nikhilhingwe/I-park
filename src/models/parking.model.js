@@ -15,11 +15,16 @@ const parkingSchema = new mongoose.Schema(
           `${props.value} is not a valid 10-digit phone number!`,
       },
     },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // For future association with User model
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isParked: { type: Boolean, default: false },
     hotelId: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel" },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: "Branch" },
-    valleyBoyId: { type: mongoose.Schema.Types.ObjectId, ref: "ValleyBoy" }, // Assigned valley boy
+    valleyBoyId: { type: mongoose.Schema.Types.ObjectId, ref: "ValleyBoy" },
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
+    },
     parkingTime: { type: Date },
     unparkingTime: { type: Date },
     parkingLocation: { type: String },
