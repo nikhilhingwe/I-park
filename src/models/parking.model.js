@@ -22,7 +22,7 @@ const parkingSchema = new mongoose.Schema(
     valleyBoyId: { type: mongoose.Schema.Types.ObjectId, ref: "ValleyBoy" },
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected"],
+      enum: ["pending", "accepted", "rejected", "parked", "completed"],
       default: "pending",
     },
     parkingTime: { type: Date },

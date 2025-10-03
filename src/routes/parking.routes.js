@@ -11,12 +11,14 @@ const {
   updateParkingStatus,
   getParkingByRole,
   updateParkingStatusOnly,
+  getParkingByLocation,
 } = require("../controllers/parking.controller");
 const authenticate = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.post("/add", createParking);
 router.get("/get", authenticate, getAllParking);
+router.get("/location", authenticate, getParkingByLocation);
 router.get("/:id", authenticate, getParkingById);
 router.put("/update/:id", authenticate, updateParking);
 router.delete("/delete/:id", authenticate, deleteParking);

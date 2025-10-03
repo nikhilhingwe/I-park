@@ -14,7 +14,7 @@ const authenticate = require("../middleware/authMiddleware");
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
-router.use("/valleyboy", authenticate, valleyBoyRoutes);
+router.use("/valleyboy", valleyBoyRoutes);
 router.use("/hotel", hotelRoutes);
 router.use("/branchgroup", branchGroupRoutes);
 router.use("/branch", branchRoutes);

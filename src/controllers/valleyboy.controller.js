@@ -105,6 +105,36 @@ exports.getValleyBoy = async (req, res) => {
   }
 };
 
+exports.getValleyBoyById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ValleyBoy ID" });
+    }
+
+    // Find ValleyBoy by ID and populate hotel & branch
+    const valleyBoy = await ValleyBoy.findById(id)
+      .populate("hotelId", "name")
+      .populate("branchId", "name");
+
+    if (!valleyBoy) {
+      return res.status(404).json({ message: "ValleyBoy not found" });
+    }
+
+    // Decrypt password before sending (optional)
+    if (valleyBoy.password) {
+      valleyBoy.password = decrypt(valleyBoy.password);
+    }
+
+    res.status(200).json(valleyBoy);
+  } catch (err) {
+    console.error("getValleyBoyById error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.updateValleyBoy = async (req, res) => {
   const { id } = req.params;
   const {
@@ -297,48 +327,151 @@ exports.toggleValleyBoyStatus = async (req, res) => {
 //   }
 // };
 
+// exports.generateValleyBoyQR = async (req, res) => {
+//   const { id } = req.params; // optional single ValleyBoy
+//   const { role, id: userId, hotelId, branchId, assignedBranchsId } = req.user;
+
+//   try {
+//     // Base query: only online ValleyBoys
+//     const query = { isOnline: true };
+
+//     // Role-based filtering
+//     switch (role) {
+//       case "superadmin":
+//         // No filter, get all ValleyBoys
+//         break;
+
+//       case "hotel":
+//         if (!hotelId)
+//           return res.status(400).json({ message: "Hotel ID missing" });
+//         query.hotelId = hotelId;
+//         break;
+
+//       case "branch":
+//         if (!branchId)
+//           return res.status(400).json({ message: "Branch ID missing" });
+//         query.branchId = branchId;
+//         break;
+
+//       case "branchGroup":
+//         if (!assignedBranchsId || !assignedBranchsId.length)
+//           return res
+//             .status(400)
+//             .json({ message: "BranchGroup assigned branches missing" });
+//         query.branchId = { $in: assignedBranchsId };
+//         break;
+
+//       default:
+//         return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     // If a specific ValleyBoy ID is provided, filter by it
+//     if (id) query._id = id;
+
+//     // Fetch ValleyBoys with hotel and branch info
+//     const valleyBoys = await ValleyBoy.find(query)
+//       .populate("hotelId", "name email")
+//       .populate("branchId", "name email")
+//       .lean();
+
+//     if (!valleyBoys.length) {
+//       return res.status(404).json({ message: "No ValleyBoys found" });
+//     }
+
+//     // Generate QR codes with hotel and branch info
+//     const qrCodes = await Promise.all(
+//       valleyBoys.map(async (vb) => {
+//         // Generate QR link for ValleyBoy form
+//         const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${vb._id}`;
+//         const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
+
+//         return {
+//           valleyBoyId: vb._id,
+//           name: vb.name,
+//           hotel: vb.hotelId || null,
+//           branch: vb.branchId || null,
+//           qrCode: qrCodeDataURL,
+//         };
+//       })
+//     );
+
+//     res.status(200).json({
+//       message: id
+//         ? "QR code generated for ValleyBoy"
+//         : "QR codes generated for all online ValleyBoys within your role scope",
+//       qrCodes,
+//     });
+//   } catch (err) {
+//     console.error("Error generating ValleyBoy QR codes:", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 exports.generateValleyBoyQR = async (req, res) => {
-  const { id } = req.params; // optional single ValleyBoy
+  const { id } = req.params; // optional ValleyBoy ID
   const { role, id: userId, hotelId, branchId, assignedBranchsId } = req.user;
 
   try {
+    // Helper for safe ObjectId handling
+    const safeObjectId = (val) => {
+      if (!val) return null;
+      if (mongoose.Types.ObjectId.isValid(val)) {
+        return typeof val === "string" ? new mongoose.Types.ObjectId(val) : val;
+      }
+      return null;
+    };
+
     // Base query: only online ValleyBoys
     const query = { isOnline: true };
 
     // Role-based filtering
     switch (role) {
       case "superadmin":
-        // No filter, get all ValleyBoys
+        // no filter
         break;
 
-      case "hotel":
-        if (!hotelId)
+      case "hotel": {
+        const targetHotelId = hotelId || userId; // fallback
+        if (!targetHotelId) {
           return res.status(400).json({ message: "Hotel ID missing" });
-        query.hotelId = hotelId;
+        }
+        query.hotelId = safeObjectId(targetHotelId);
         break;
+      }
 
-      case "branch":
-        if (!branchId)
+      case "branch": {
+        const targetBranchId = branchId || userId; // fallback
+        if (!targetBranchId) {
           return res.status(400).json({ message: "Branch ID missing" });
-        query.branchId = branchId;
+        }
+        query.branchId = safeObjectId(targetBranchId);
         break;
+      }
 
-      case "branchGroup":
-        if (!assignedBranchsId || !assignedBranchsId.length)
+      case "branchGroup": {
+        if (!assignedBranchsId || !assignedBranchsId.length) {
           return res
             .status(400)
             .json({ message: "BranchGroup assigned branches missing" });
-        query.branchId = { $in: assignedBranchsId };
+        }
+        const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
+        if (!validIds.length) {
+          return res
+            .status(400)
+            .json({ message: "No valid assigned branch IDs" });
+        }
+        query.branchId = { $in: validIds };
         break;
+      }
 
       default:
         return res.status(403).json({ message: "Unauthorized role" });
     }
 
-    // If a specific ValleyBoy ID is provided, filter by it
-    if (id) query._id = id;
+    // If specific ValleyBoy requested
+    if (id) query._id = safeObjectId(id);
 
-    // Fetch ValleyBoys with hotel and branch info
+    // Fetch ValleyBoys with hotel/branch info
     const valleyBoys = await ValleyBoy.find(query)
       .populate("hotelId", "name email")
       .populate("branchId", "name email")
@@ -348,11 +481,10 @@ exports.generateValleyBoyQR = async (req, res) => {
       return res.status(404).json({ message: "No ValleyBoys found" });
     }
 
-    // Generate QR codes with hotel and branch info
+    // Generate QR codes
     const qrCodes = await Promise.all(
       valleyBoys.map(async (vb) => {
-        // Generate QR link for ValleyBoy form
-        const qrUrl = `https://yourfrontend.com/valleyBoyForm?id=${vb._id}`;
+        const qrUrl = `http://localhost:5173/carbook?id=${vb._id}`;
         const qrCodeDataURL = await QRCode.toDataURL(qrUrl);
 
         return {
