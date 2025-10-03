@@ -36,6 +36,73 @@ exports.updateParkingStatusOnly = async (req, res) => {
   }
 };
 
+exports.updateParkingStatusOnly = async (req, res) => {
+  try {
+    const { status, latitude, longitude } = req.body;
+
+    const updateData = { status };
+
+    if (latitude !== undefined && longitude !== undefined) {
+      updateData.location = {
+        type: "Point",
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      };
+    }
+
+    const parking = await Parking.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+    });
+
+    if (!parking) return res.status(404).json({ error: "Parking not found" });
+
+    // If status is accepted, send WhatsApp message
+    if (status === "accepted") {
+      const message = `Hello ${parking.userName}, your car (${parking.vehicleNumber}) is parked successfully.`;
+
+      await sendWhatsAppMessage(parking.userNumber, message);
+    }
+
+    res.status(200).json(parking);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Function to send WhatsApp message using TheUltimate.io WA API
+const sendWhatsAppMessage = async (mobileNumber, message) => {
+  const apiUrl = "https://theultimate.io/WAApi/send";
+  const apiKey = "<api Key>"; // Replace with your API key
+  const userId = "<user id>"; // Replace with your user ID
+  const password = "<pwd>"; // Replace with your password
+  const wabaNumber = "<co Mobile number>"; // Replace with your WhatsApp number
+
+  try {
+    const response = await axios.post(apiUrl, null, {
+      params: {
+        apikey: apiKey,
+        userid: userId,
+        password: password,
+        msg: message,
+        wabaNumber: wabaNumber,
+        output: "json",
+        mobile: mobileNumber,
+        sendMethod: "quick",
+        msgType: "text", // Could be list/reply/text depending on your use
+      },
+    });
+
+    console.log("WhatsApp API Response:", response.data);
+    return response.data;
+  } catch (err) {
+    console.error(
+      "Error sending WhatsApp message:",
+      err.response?.data || err.message
+    );
+    throw new Error("Failed to send WhatsApp message");
+  }
+};
+
 exports.updateIsParked = async (req, res) => {
   try {
     const { isParked } = req.body;
