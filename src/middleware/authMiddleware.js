@@ -30,7 +30,6 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
-    // Assign user role and details (only if token matches)
     let user;
     let sperr = false;
     user = await SuperAdmin.findById(decoded.id);
