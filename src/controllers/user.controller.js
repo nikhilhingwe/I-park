@@ -148,6 +148,7 @@ exports.loginUser = async (req, res) => {
         email: user.email,
         hotelId: user.hotelId?._id || user.hotelId,
         branchId: user.branchId?._id || user.branchId,
+        role: user.role,
       };
     } else {
       // Other user types
