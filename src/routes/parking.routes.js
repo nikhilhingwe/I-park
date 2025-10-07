@@ -12,6 +12,7 @@ const {
   getParkingByRole,
   updateParkingStatusOnly,
   getParkingByLocation,
+  getParkingByLoc,
 } = require("../controllers/parking.controller");
 const authenticate = require("../middleware/authMiddleware");
 const router = express.Router();
@@ -27,5 +28,9 @@ router.patch("/unparkingTime/:id", authenticate, updateUnparkingTime);
 router.patch("/status/:id", authenticate, updateParkingStatus);
 
 router.patch("/status-update/:id", authenticate, updateParkingStatusOnly);
+
+// router.get("/location/:locationName", authenticate, getParkingByLoc);
+
+router.get("/location/:lat/:lng", authenticate, getParkingByLoc);
 
 module.exports = router;

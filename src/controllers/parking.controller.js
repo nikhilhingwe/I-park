@@ -39,8 +39,10 @@ exports.updateParkingStatusOnly = async (req, res) => {
 exports.updateParkingStatusOnly = async (req, res) => {
   try {
     const { status, latitude, longitude } = req.body;
+    let { parkingTime } = req.body;
+    if (!parkingTime) parkingTime = new Date();
 
-    const updateData = { status };
+    const updateData = { status, parkingTime, isParked: true };
 
     if (latitude !== undefined && longitude !== undefined) {
       updateData.location = {
@@ -72,10 +74,10 @@ exports.updateParkingStatusOnly = async (req, res) => {
 // Function to send WhatsApp message using TheUltimate.io WA API
 const sendWhatsAppMessage = async (mobileNumber, message) => {
   const apiUrl = "https://theultimate.io/WAApi/send";
-  const apiKey = "<api Key>"; // Replace with your API key
-  const userId = "<user id>"; // Replace with your user ID
-  const password = "<pwd>"; // Replace with your password
-  const wabaNumber = "<co Mobile number>"; // Replace with your WhatsApp number
+  const apiKey = "bc43bba92e4c5f824ae5287303892d89466f38c7"; // Replace with your API key
+  const userId = "parkobotswa"; // Replace with your user ID
+  const password = "parko@12"; // Replace with your password
+  const wabaNumber = "918237329243"; // Replace with your WhatsApp number
 
   try {
     const response = await axios.post(apiUrl, null, {
@@ -86,7 +88,7 @@ const sendWhatsAppMessage = async (mobileNumber, message) => {
         msg: message,
         wabaNumber: wabaNumber,
         output: "json",
-        mobile: mobileNumber,
+        mobile: `91${mobileNumber}`,
         sendMethod: "quick",
         msgType: "text", // Could be list/reply/text depending on your use
       },
@@ -177,7 +179,9 @@ exports.updateUnparkingTime = async (req, res) => {
 
 exports.updateParkingStatus = async (req, res) => {
   try {
-    const { isParked, parkingTime, unparkingTime } = req.body;
+    const { isParked, unparkingTime } = req.body;
+    let { parkingTime } = req.body;
+    if (!parkingTime) parkingTime = new Date();
     const parking = await Parking.findByIdAndUpdate(
       req.params.id,
       { isParked, parkingTime, unparkingTime },
@@ -659,5 +663,242 @@ exports.getParkingByLocation = async (req, res) => {
   } catch (err) {
     console.error("getParkingByLocation error:", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// -----------------------------------------
+
+// const mongoose = require("mongoose");
+// const Parking = require("../models/Parking");
+// const Hotel = require("../models/Hotel");
+// const Branch = require("../models/Branch")
+// exports.getParkingByLoc = async (req, res) => {
+//   try {
+//     const { locationName } = req.params;
+//     const { role, id, hotelId, branchId, assignedBranchsId } = req.user;
+
+//     if (!locationName) {
+//       return res.status(400).json({ message: "Location name is required" });
+//     }
+
+//     // Initial query filter by location name
+//     const query = { parkingLocation: locationName };
+
+//     // Helper for safe ObjectId conversion
+//     const safeObjectId = (val) => {
+//       if (!val) return null;
+//       if (mongoose.Types.ObjectId.isValid(val)) {
+//         return typeof val === "string" ? new mongoose.Types.ObjectId(val) : val;
+//       }
+//       return null;
+//     };
+
+//     // Role-based data restriction
+//     switch (role) {
+//       case "superadmin":
+//         break;
+//       case "hotel":
+//         query.hotelId = safeObjectId(hotelId || id);
+//         break;
+//       case "branch":
+//         query.branchId = safeObjectId(branchId || id);
+//         break;
+//       case "valley":
+//         query.valleyBoyId = safeObjectId(id);
+//         break;
+//       case "branchGroup":
+//         if (hotelId) query.hotelId = safeObjectId(hotelId);
+//         if (assignedBranchsId?.length) {
+//           const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
+//           if (validIds.length) query.branchId = { $in: validIds };
+//         }
+//         break;
+//       default:
+//         return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     // Fetch all parkings for this location
+//     let parkingList = await Parking.find(query)
+//       .populate("valleyBoyId", "name email phone role hotelId branchId")
+//       .populate("userId", "name email phone")
+//       .lean();
+
+//     // Enrich with hotel/branch names
+//     parkingList = await Promise.all(
+//       parkingList.map(async (p) => {
+//         if (p.valleyBoyId?.hotelId) {
+//           p.valleyBoyId.hotel = await Hotel.findById(
+//             p.valleyBoyId.hotelId,
+//             "name email"
+//           );
+//         }
+//         if (p.valleyBoyId?.branchId) {
+//           p.valleyBoyId.branch = await Branch.findById(
+//             p.valleyBoyId.branchId,
+//             "name email"
+//           );
+//         }
+//         return p;
+//       })
+//     );
+
+//     res.status(200).json(parkingList);
+//   } catch (error) {
+//     console.error("getParkingByLocation error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.getParkingByLoc = async (req, res) => {
+//   try {
+//     const { lat, lng } = req.params;
+//     const { role, id, hotelId, branchId, assignedBranchsId } = req.user;
+
+//     if (!lat || !lng) {
+//       return res
+//         .status(400)
+//         .json({ message: "Latitude and longitude required" });
+//     }
+
+//     const latitude = parseFloat(lat);
+//     const longitude = parseFloat(lng);
+
+//     if (isNaN(latitude) || isNaN(longitude)) {
+//       return res.status(400).json({ message: "Invalid latitude or longitude" });
+//     }
+
+//     const query = {
+//       "location.coordinates": [longitude, latitude],
+//     };
+
+//     // Helper
+//     const safeObjectId = (val) => {
+//       if (!val) return null;
+//       if (mongoose.Types.ObjectId.isValid(val)) {
+//         return typeof val === "string" ? new mongoose.Types.ObjectId(val) : val;
+//       }
+//       return null;
+//     };
+
+//     // Role-based restrictions
+//     switch (role) {
+//       case "superadmin":
+//         break;
+//       case "hotel":
+//         query.hotelId = safeObjectId(hotelId || id);
+//         break;
+//       case "branch":
+//         query.branchId = safeObjectId(branchId || id);
+//         break;
+//       case "valley":
+//         query.valleyBoyId = safeObjectId(id);
+//         break;
+//       case "branchGroup":
+//         if (hotelId) query.hotelId = safeObjectId(hotelId);
+//         if (assignedBranchsId?.length) {
+//           const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
+//           if (validIds.length) query.branchId = { $in: validIds };
+//         }
+//         break;
+//       default:
+//         return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     console.log("QUERY:", query); // 🔍 Debug
+
+//     let parkingList = await Parking.find(query)
+//       .populate("valleyBoyId", "name email phone role hotelId branchId")
+//       .populate("userId", "name email phone")
+//       .lean();
+
+//     res.status(200).json(parkingList);
+//   } catch (error) {
+//     console.error("getParkingByLoc error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+exports.getParkingByLoc = async (req, res) => {
+  try {
+    const { lat, lng } = req.params;
+    const { role, id, hotelId, branchId, assignedBranchsId } = req.user;
+
+    if (!lat || !lng) {
+      return res
+        .status(400)
+        .json({ message: "Latitude and longitude required" });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return res.status(400).json({ message: "Invalid latitude or longitude" });
+    }
+
+    // Base query for coordinates
+    const query = {
+      "location.coordinates": [longitude, latitude],
+    };
+
+    // Helper for safe ObjectId conversion
+    const safeObjectId = (val) => {
+      if (!val) return null;
+      if (mongoose.Types.ObjectId.isValid(val)) {
+        return typeof val === "string" ? new mongoose.Types.ObjectId(val) : val;
+      }
+      return null;
+    };
+
+    // Role-based filters
+    switch (role) {
+      case "superadmin":
+        break;
+      case "hotel":
+        query.hotelId = safeObjectId(hotelId || id);
+        break;
+      case "branch":
+        query.branchId = safeObjectId(branchId || id);
+        break;
+      case "valley":
+        query.valleyBoyId = safeObjectId(id);
+        break;
+      case "branchGroup":
+        if (hotelId) query.hotelId = safeObjectId(hotelId);
+        if (assignedBranchsId?.length) {
+          const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
+          if (validIds.length) query.branchId = { $in: validIds };
+        }
+        break;
+      default:
+        return res.status(403).json({ message: "Unauthorized role" });
+    }
+
+    console.log("QUERY:", query);
+
+    let parkingList = await Parking.find(query)
+      .populate("valleyBoyId", "name email phone role hotelId branchId")
+      .populate("userId", "name email phone")
+      .lean();
+
+    // Fetch hotel and branch names
+    parkingList = await Promise.all(
+      parkingList.map(async (p) => {
+        if (p.valleyBoyId?.hotelId) {
+          const hotel = await Hotel.findById(p.valleyBoyId.hotelId, "name");
+          p.valleyBoyId.hotel = hotel || null;
+        }
+        if (p.valleyBoyId?.branchId) {
+          const branch = await Branch.findById(p.valleyBoyId.branchId, "name");
+          p.valleyBoyId.branch = branch || null;
+        }
+        return p;
+      })
+    );
+
+    res.status(200).json(parkingList);
+  } catch (error) {
+    console.error("getParkingByLoc error:", error);
+    res.status(500).json({ error: error.message });
   }
 };

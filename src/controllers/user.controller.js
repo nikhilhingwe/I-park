@@ -7,6 +7,83 @@ const ValleyBoy = require("../models/valleyboy.model");
 const jwt = require("jsonwebtoken");
 const { comparePassword } = require("../utils/crypto");
 
+// exports.loginUser = async (req, res) => {
+//   const { email, password } = req.body;
+//   let user;
+//   let userModel = null;
+
+//   if (!email || !password) {
+//     return res.status(400).json({ message: "Please enter valid details" });
+//   }
+
+//   try {
+//     // Find user in various collections
+//     user = await SuperAdmin.findOne({ email }).lean();
+//     if (user) userModel = "SuperAdmin";
+//     if (!user) {
+//       user = await Hotel.findOne({ email });
+//       if (user) userModel = "Hotel";
+//     }
+//     if (!user) {
+//       user = await Branch.findOne({ email }).populate("hotelId", "email");
+//       if (user) userModel = "Branch";
+//     }
+//     if (!user) {
+//       user = await BranchGroup.findOne({ email })
+//         .populate("assignedBranchsId", "email")
+//         .populate("hotelId", "email");
+//       if (user) userModel = "BranchGroup";
+//     }
+//     if (!user) {
+//       user = await ValleyBoy.findOne({ email }).populate("hotelId branchId");
+//       if (user) userModel = "ValleyBoy";
+//     }
+
+//     if (!user) {
+//       return res.status(400).json({ message: "Invalid credentials" });
+//     }
+
+//     // Validate password
+//     const isMatch = await comparePassword(password, user.password);
+//     if (!isMatch) {
+//       return res
+//         .status(400)
+//         .json({ message: "Incorrect password or email ID" });
+//     }
+
+//     // Generate JWT token
+//     const payload = {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//     };
+//     if (user.hotelId) payload.hotelId = user.hotelId;
+//     if (user.branchId) payload.branchId = user.branchId;
+//     if (user.assignedBranchsId)
+//       payload.assignedBranchsId = user.assignedBranchsId;
+
+//     const token = jwt.sign(payload, process.env.JWT_SECRET, {
+//       expiresIn: "1d",
+//     });
+
+//     // Store token in Verification model
+//     const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day expiry
+//     await Verification.create({
+//       userId: user._id,
+//       userModel,
+//       token,
+//       expireAt,
+//     });
+
+//     res.status(200).json({
+//       message: "Successful Login",
+//       token,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   let user;
@@ -21,21 +98,26 @@ exports.loginUser = async (req, res) => {
     user = await SuperAdmin.findOne({ email }).lean();
     if (user) userModel = "SuperAdmin";
     if (!user) {
-      user = await Hotel.findOne({ email });
+      user = await Hotel.findOne({ email }).lean();
       if (user) userModel = "Hotel";
     }
     if (!user) {
-      user = await Branch.findOne({ email }).populate("hotelId", "email");
+      user = await Branch.findOne({ email })
+        .populate("hotelId", "email")
+        .lean();
       if (user) userModel = "Branch";
     }
     if (!user) {
       user = await BranchGroup.findOne({ email })
         .populate("assignedBranchsId", "email")
-        .populate("hotelId", "email");
+        .populate("hotelId", "email")
+        .lean();
       if (user) userModel = "BranchGroup";
     }
     if (!user) {
-      user = await ValleyBoy.findOne({ email }).populate("hotelId branchId");
+      user = await ValleyBoy.findOne({ email })
+        .populate("hotelId branchId")
+        .lean();
       if (user) userModel = "ValleyBoy";
     }
 
@@ -51,17 +133,31 @@ exports.loginUser = async (req, res) => {
         .json({ message: "Incorrect password or email ID" });
     }
 
-    // Generate JWT token
-    const payload = {
+    // Generate JWT payload
+    let payload = {
       id: user._id,
       email: user.email,
       role: user.role,
     };
-    if (user.hotelId) payload.hotelId = user.hotelId;
-    if (user.branchId) payload.branchId = user.branchId;
-    if (user.assignedBranchsId)
-      payload.assignedBranchsId = user.assignedBranchsId;
 
+    // Customize payload based on user type
+    if (userModel === "ValleyBoy") {
+      // ValleyBoy → only send hotelId and branchId
+      payload = {
+        id: user._id,
+        email: user.email,
+        hotelId: user.hotelId?._id || user.hotelId,
+        branchId: user.branchId?._id || user.branchId,
+      };
+    } else {
+      // Other user types
+      if (user.hotelId) payload.hotelId = user.hotelId;
+      if (user.branchId) payload.branchId = user.branchId;
+      if (user.assignedBranchsId)
+        payload.assignedBranchsId = user.assignedBranchsId;
+    }
+
+    // Sign JWT
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });

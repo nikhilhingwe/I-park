@@ -61,7 +61,7 @@ const authenticate = async (req, res, next) => {
             if (user) {
               req.user = {
                 id: user._id,
-                role: "valley",
+                role: "valleyBoy",
                 hotelId: user.hotelId,
                 branchId: user.branchId,
               };
