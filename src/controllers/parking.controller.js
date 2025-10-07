@@ -73,36 +73,7 @@ exports.updateParkingStatusOnly = async (req, res) => {
 
 // Function to send WhatsApp message using TheUltimate.io WA API
 const sendWhatsAppMessage = async (mobileNumber, message) => {
-  const apiUrl = "https://theultimate.io/WAApi/send";
-  const apiKey = "bc43bba92e4c5f824ae5287303892d89466f38c7"; // Replace with your API key
-  const userId = "parkobotswa"; // Replace with your user ID
-  const password = "parko@12"; // Replace with your password
-  const wabaNumber = "918237329243"; // Replace with your WhatsApp number
-
-  try {
-    const response = await axios.post(apiUrl, null, {
-      params: {
-        apikey: apiKey,
-        userid: userId,
-        password: password,
-        msg: message,
-        wabaNumber: wabaNumber,
-        output: "json",
-        mobile: `91${mobileNumber}`,
-        sendMethod: "quick",
-        msgType: "text", // Could be list/reply/text depending on your use
-      },
-    });
-
-    console.log("WhatsApp API Response:", response.data);
-    return response.data;
-  } catch (err) {
-    console.error(
-      "Error sending WhatsApp message:",
-      err.response?.data || err.message
-    );
-    throw new Error("Failed to send WhatsApp message");
-  }
+  console.log(mobileNumber, message);
 };
 
 exports.updateIsParked = async (req, res) => {
