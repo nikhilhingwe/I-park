@@ -4,6 +4,7 @@ const ValleyBoy = require("../models/valleyboy.model");
 const Hotel = require("../models/hotel.model");
 const Branch = require("../models/branch.model");
 const { default: axios } = require("axios");
+const User = require("../models/user.model");
 
 const toObjectId = (value) => {
   if (mongoose.Types.ObjectId.isValid(value))
@@ -165,46 +166,285 @@ exports.updateParkingStatus = async (req, res) => {
   }
 };
 
+// exports.createParking = async (req, res) => {
+//   try {
+//     let { valleyBoyId, latitude, longitude } = req.body;
+//     let assignedValleyBoy = null;
+
+//     // Assign ValleyBoy if provided and online
+//     if (valleyBoyId) {
+//       assignedValleyBoy = await ValleyBoy.findById(valleyBoyId);
+//       if (assignedValleyBoy && !assignedValleyBoy.isOnline) {
+//         const newValleyBoy = await ValleyBoy.findOne({ isOnline: true });
+//         if (newValleyBoy) {
+//           req.body.valleyBoyId = newValleyBoy._id;
+//         } else {
+//           req.body.status = "pending";
+//         }
+//       }
+//     }
+
+//     if (latitude && longitude) {
+//       req.body.location = {
+//         type: "Point",
+//         coordinates: [parseFloat(longitude), parseFloat(latitude)],
+//       };
+//     }
+
+//     const parking = new Parking(req.body);
+//     await parking.save();
+
+//     res.status(201).json(parking);
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+// exports.createParking = async (req, res) => {
+//   try {
+//     let { valleyBoyId, latitude, longitude, userName, userNumber } = req.body;
+
+//     // 🧍 1️⃣ Check if user exists or create new user
+//     let user = await User.findOne({ phoneNumber: userNumber });
+//     if (!user) {
+//       user = await User.create({
+//         name: userName,
+//         phoneNumber: userNumber,
+//       });
+//     }
+
+//     // 🚗 2️⃣ Valley boy assignment
+//     let assignedValleyBoy = null;
+//     if (valleyBoyId) {
+//       assignedValleyBoy = await ValleyBoy.findById(valleyBoyId);
+//       if (assignedValleyBoy && !assignedValleyBoy.isOnline) {
+//         const newValleyBoy = await ValleyBoy.findOne({ isOnline: true });
+//         if (newValleyBoy) {
+//           req.body.valleyBoyId = newValleyBoy._id;
+//         } else {
+//           req.body.status = "pending";
+//         }
+//       }
+//     }
+
+//     // 📍 3️⃣ Set parking location
+//     if (latitude && longitude) {
+//       req.body.location = {
+//         type: "Point",
+//         coordinates: [parseFloat(longitude), parseFloat(latitude)],
+//       };
+//     }
+
+//     // 👤 4️⃣ Attach userId to parking
+//     req.body.userId = user._id;
+
+//     // 📝 5️⃣ Create parking record
+//     const parking = new Parking(req.body);
+//     await parking.save();
+
+//     res.status(201).json({
+//       message: "Parking created successfully",
+//       parking,
+//     });
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
 exports.createParking = async (req, res) => {
   try {
-    let { valleyBoyId, latitude, longitude } = req.body;
-    let assignedValleyBoy = null;
+    const {
+      valleyBoyId,
+      latitude,
+      longitude,
+      userName,
+      userNumber,
+      vehicleNumber,
+      parkingLocation,
+      hotelId,
+      branchId,
+    } = req.body;
 
-    // Assign ValleyBoy if provided and online
+    // ✅ 1. Validate required fields
+    if (!vehicleNumber || !userName || !userNumber) {
+      return res.status(400).json({
+        message: "Vehicle number, user name, and user number are required",
+      });
+    }
+
+    // 🧍 2. Check or create user
+    let user = await User.findOne({ phoneNumber: userNumber });
+    if (!user) {
+      user = await User.create({
+        name: userName,
+        phoneNumber: userNumber,
+      });
+    }
+
+    // 👷 3. Valley boy assignment logic
+    let assignedValleyBoy = null;
+    let status = "pending";
+
     if (valleyBoyId) {
       assignedValleyBoy = await ValleyBoy.findById(valleyBoyId);
-      if (assignedValleyBoy && !assignedValleyBoy.isOnline) {
-        const newValleyBoy = await ValleyBoy.findOne({ isOnline: true });
-        if (newValleyBoy) {
-          req.body.valleyBoyId = newValleyBoy._id;
+
+      if (assignedValleyBoy) {
+        if (assignedValleyBoy.isOnline) {
+          // Use the given valley boy if online
+          req.body.valleyBoyId = assignedValleyBoy._id;
+          status = "accepted";
         } else {
-          req.body.status = "pending";
+          // If the given one is offline, try to assign another online valley boy
+          const newValleyBoy = await ValleyBoy.findOne({ isOnline: true });
+          if (newValleyBoy) {
+            req.body.valleyBoyId = newValleyBoy._id;
+            status = "accepted";
+          } else {
+            status = "pending";
+          }
         }
       }
     }
 
+    // 📍 4. Set parking location if coordinates are provided
+    let location = undefined;
     if (latitude && longitude) {
-      req.body.location = {
+      location = {
         type: "Point",
         coordinates: [parseFloat(longitude), parseFloat(latitude)],
       };
     }
 
-    const parking = new Parking(req.body);
-    await parking.save();
+    // 📝 5. Create parking data object
+    const parkingData = {
+      vehicleNumber,
+      userName,
+      userNumber,
+      userId: user._id,
+      valleyBoyId: req.body.valleyBoyId || null,
+      status,
+      hotelId,
+      branchId,
+      parkingLocation,
+      location,
+    };
 
-    res.status(201).json(parking);
+    // 🚗 6. Save parking record
+    const parking = await Parking.create(parkingData);
+
+    res.status(201).json({
+      success: true,
+      message: "Parking created successfully",
+      parking,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error creating parking:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// exports.getAllParking = async (req, res) => {
+//   try {
+//     const { role, id, hotelId, branchId, assignedBranchsId } = req.user;
+//     const query = {};
+
+//     // Improved safe ObjectId helper
+//     const safeObjectId = (val) => {
+//       if (!val) return null;
+//       if (mongoose.Types.ObjectId.isValid(val)) {
+//         return typeof val === "string" ? new mongoose.Types.ObjectId(val) : val;
+//       }
+//       return null;
+//     };
+
+//     switch (role) {
+//       case "superadmin":
+//         // no filter
+//         break;
+
+//       case "hotel": {
+//         const targetHotelId = hotelId || id; // fallback
+//         if (!targetHotelId) {
+//           return res.status(400).json({ message: "Hotel ID missing" });
+//         }
+//         query.hotelId = safeObjectId(targetHotelId);
+//         break;
+//       }
+
+//       case "branch": {
+//         const targetBranchId = branchId || id; // fallback
+//         if (!targetBranchId) {
+//           return res.status(400).json({ message: "Branch ID missing" });
+//         }
+//         query.branchId = safeObjectId(targetBranchId);
+//         break;
+//       }
+
+//       case "valley":
+//         query.valleyBoyId = safeObjectId(id);
+//         break;
+
+//       case "branchGroup": {
+//         if (hotelId) {
+//           query.hotelId = safeObjectId(hotelId);
+//         }
+//         if (assignedBranchsId && assignedBranchsId.length) {
+//           const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
+//           if (validIds.length) {
+//             query.branchId = { $in: validIds };
+//           }
+//         }
+//         break;
+//       }
+
+//       default:
+//         return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     // Debug (remove in production)
+//     console.log("USER:", req.user);
+//     console.log("QUERY:", query);
+
+//     // Fetch parking records
+//     let parkingList = await Parking.find(query)
+//       .populate("valleyBoyId", "name email phone role hotelId branchId")
+//       .populate("userId", "name email phone")
+//       .lean();
+
+//     // Populate hotel & branch info
+//     parkingList = await Promise.all(
+//       parkingList.map(async (parking) => {
+//         if (parking.valleyBoyId) {
+//           if (parking.valleyBoyId.hotelId) {
+//             parking.valleyBoyId.hotel = await Hotel.findById(
+//               parking.valleyBoyId.hotelId,
+//               "name email"
+//             );
+//           }
+//           if (parking.valleyBoyId.branchId) {
+//             parking.valleyBoyId.branch = await Branch.findById(
+//               parking.valleyBoyId.branchId,
+//               "name email"
+//             );
+//           }
+//         }
+//         return parking;
+//       })
+//     );
+
+//     res.status(200).json(parkingList);
+//   } catch (error) {
+//     console.error("getAllParking error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
 exports.getAllParking = async (req, res) => {
   try {
     const { role, id, hotelId, branchId, assignedBranchsId } = req.user;
     const query = {};
 
-    // Improved safe ObjectId helper
+    // Helper to safely convert to ObjectId
     const safeObjectId = (val) => {
       if (!val) return null;
       if (mongoose.Types.ObjectId.isValid(val)) {
@@ -219,19 +459,17 @@ exports.getAllParking = async (req, res) => {
         break;
 
       case "hotel": {
-        const targetHotelId = hotelId || id; // fallback
-        if (!targetHotelId) {
+        const targetHotelId = hotelId || id;
+        if (!targetHotelId)
           return res.status(400).json({ message: "Hotel ID missing" });
-        }
         query.hotelId = safeObjectId(targetHotelId);
         break;
       }
 
       case "branch": {
-        const targetBranchId = branchId || id; // fallback
-        if (!targetBranchId) {
+        const targetBranchId = branchId || id;
+        if (!targetBranchId)
           return res.status(400).json({ message: "Branch ID missing" });
-        }
         query.branchId = safeObjectId(targetBranchId);
         break;
       }
@@ -241,17 +479,17 @@ exports.getAllParking = async (req, res) => {
         break;
 
       case "branchGroup": {
-        if (hotelId) {
-          query.hotelId = safeObjectId(hotelId);
-        }
+        if (hotelId) query.hotelId = safeObjectId(hotelId);
         if (assignedBranchsId && assignedBranchsId.length) {
           const validIds = assignedBranchsId.map(safeObjectId).filter(Boolean);
-          if (validIds.length) {
-            query.branchId = { $in: validIds };
-          }
+          if (validIds.length) query.branchId = { $in: validIds };
         }
         break;
       }
+
+      case "user": // ✅ normal user
+        query.userId = safeObjectId(id);
+        break;
 
       default:
         return res.status(403).json({ message: "Unauthorized role" });
@@ -267,7 +505,7 @@ exports.getAllParking = async (req, res) => {
       .populate("userId", "name email phone")
       .lean();
 
-    // Populate hotel & branch info
+    // Populate hotel & branch info for valleyBoy
     parkingList = await Promise.all(
       parkingList.map(async (parking) => {
         if (parking.valleyBoyId) {

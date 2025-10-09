@@ -6,6 +6,8 @@ const BranchGroup = require("../models/branchGroup.model");
 const ValleyBoy = require("../models/valleyboy.model");
 const jwt = require("jsonwebtoken");
 const { comparePassword } = require("../utils/crypto");
+const User = require("../models/user.model");
+const { generateOTP } = require("../utils/helper");
 
 // exports.loginUser = async (req, res) => {
 //   const { email, password } = req.body;
@@ -125,7 +127,6 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Validate password
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       return res
@@ -133,16 +134,13 @@ exports.loginUser = async (req, res) => {
         .json({ message: "Incorrect password or email ID" });
     }
 
-    // Generate JWT payload
     let payload = {
       id: user._id,
       email: user.email,
       role: user.role,
     };
 
-    // Customize payload based on user type
     if (userModel === "ValleyBoy") {
-      // ValleyBoy → only send hotelId and branchId
       payload = {
         id: user._id,
         email: user.email,
@@ -158,13 +156,11 @@ exports.loginUser = async (req, res) => {
         payload.assignedBranchsId = user.assignedBranchsId;
     }
 
-    // Sign JWT
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
 
-    // Store token in Verification model
-    const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day expiry
+    const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await Verification.create({
       userId: user._id,
       userModel,
@@ -194,6 +190,97 @@ exports.logoutUser = async (req, res) => {
         .json({ message: "Token not found or already deleted" });
     }
     res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ----------------------------------------------------------------
+
+exports.sendOtp = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber || !/^[0-9]{10}$/.test(phoneNumber)) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
+
+    // Check if user exists, else create
+    let user = await User.findOne({ phoneNumber });
+    if (!user) {
+      user = await User.create({ phoneNumber });
+    }
+
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // 📝 Just log OTP in console for now
+    console.log(`🔐 OTP for ${phoneNumber}: ${otp}`);
+
+    res.status(200).json({
+      message: "OTP generated successfully",
+      phoneNumber,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// -----------------------------------------------
+
+exports.verifyOtpLogin = async (req, res) => {
+  try {
+    const { phoneNumber, otp } = req.body;
+
+    if (!phoneNumber || !otp) {
+      return res.status(400).json({ message: "Phone number and OTP required" });
+    }
+
+    const user = await User.findOne({ phoneNumber });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    // Check OTP validity
+    if (user.otp !== otp || user.otpExpires < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // ✅ OTP verified, clear otp fields
+    user.otp = null;
+    user.otpExpires = null;
+    user.isVerified = true;
+    await user.save();
+
+    // 🔐 Create token
+    const payload = {
+      id: user._id,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    // Store token
+    const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await Verification.create({
+      userId: user._id,
+      userModel: "User",
+      token,
+      expireAt,
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
