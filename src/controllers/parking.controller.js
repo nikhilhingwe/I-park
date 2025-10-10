@@ -85,7 +85,9 @@ exports.updateParkingStatusOnly = async (req, res) => {
     if (!parkingTime) parkingTime = new Date();
 
     // Generate unique ID for this parking
-    const parkingId = req.body.parkingId || require("uuid").v4();
+    const parkingId = req.params.id;
+
+    console.log(parkingId);
 
     const updateData = { status, parkingTime, isParked: true, parkingId };
 
@@ -110,7 +112,7 @@ exports.updateParkingStatusOnly = async (req, res) => {
         parking.vehicleNumber,
         parking.userName,
         valleyBoy?.name || "Valley Boy",
-        parking.parkingId
+        parking._id
       );
     }
 
