@@ -9,83 +9,6 @@ const { comparePassword } = require("../utils/crypto");
 const User = require("../models/user.model");
 const { generateOTP } = require("../utils/helper");
 
-// exports.loginUser = async (req, res) => {
-//   const { email, password } = req.body;
-//   let user;
-//   let userModel = null;
-
-//   if (!email || !password) {
-//     return res.status(400).json({ message: "Please enter valid details" });
-//   }
-
-//   try {
-//     // Find user in various collections
-//     user = await SuperAdmin.findOne({ email }).lean();
-//     if (user) userModel = "SuperAdmin";
-//     if (!user) {
-//       user = await Hotel.findOne({ email });
-//       if (user) userModel = "Hotel";
-//     }
-//     if (!user) {
-//       user = await Branch.findOne({ email }).populate("hotelId", "email");
-//       if (user) userModel = "Branch";
-//     }
-//     if (!user) {
-//       user = await BranchGroup.findOne({ email })
-//         .populate("assignedBranchsId", "email")
-//         .populate("hotelId", "email");
-//       if (user) userModel = "BranchGroup";
-//     }
-//     if (!user) {
-//       user = await ValleyBoy.findOne({ email }).populate("hotelId branchId");
-//       if (user) userModel = "ValleyBoy";
-//     }
-
-//     if (!user) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     // Validate password
-//     const isMatch = await comparePassword(password, user.password);
-//     if (!isMatch) {
-//       return res
-//         .status(400)
-//         .json({ message: "Incorrect password or email ID" });
-//     }
-
-//     // Generate JWT token
-//     const payload = {
-//       id: user._id,
-//       email: user.email,
-//       role: user.role,
-//     };
-//     if (user.hotelId) payload.hotelId = user.hotelId;
-//     if (user.branchId) payload.branchId = user.branchId;
-//     if (user.assignedBranchsId)
-//       payload.assignedBranchsId = user.assignedBranchsId;
-
-//     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-//       expiresIn: "1d",
-//     });
-
-//     // Store token in Verification model
-//     const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day expiry
-//     await Verification.create({
-//       userId: user._id,
-//       userModel,
-//       token,
-//       expireAt,
-//     });
-
-//     res.status(200).json({
-//       message: "Successful Login",
-//       token,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   let user;
@@ -197,6 +120,43 @@ exports.logoutUser = async (req, res) => {
 
 // ----------------------------------------------------------------
 
+async function sendWhatsAppTemplateMessage(recipientNumber, otp) {
+  try {
+    const formattedNumber = recipientNumber.replace(/\D/g, "");
+
+    // const verificationLink = `https://yourapp.com/verify-otp?phone=${formattedNumber}&otp=${otp}`;
+
+    const body = new URLSearchParams({
+      apikey: process.env.API_KEY_WABA,
+      userid: process.env.WABA_USER,
+      password: process.env.WABA_PASSWORD,
+      wabaNumber: "918237329243",
+      msg: `Your iPark OTP is ${otp}. It will expire in 5 minutes.`,
+      output: "json",
+      mobile: `91${formattedNumber}`,
+      sendMethod: "quick",
+      msgType: "text",
+      templatename: "ipark",
+    });
+
+    const response = await fetch("https://theultimate.io/WAApi/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      console.log("Template Message Response:", data);
+    } catch {
+      console.error("Server returned non-JSON response:", text);
+    }
+  } catch (err) {
+    console.error("Error sending template message:", err.message);
+  }
+}
+
 exports.sendOtp = async (req, res) => {
   try {
     const { phoneNumber } = req.body;
@@ -218,18 +178,19 @@ exports.sendOtp = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // 📝 Just log OTP in console for now
+    // ✅ Call WhatsApp function with phoneNumber & otp
+    await sendWhatsAppTemplateMessage(phoneNumber, otp);
+
     console.log(`🔐 OTP for ${phoneNumber}: ${otp}`);
 
     res.status(200).json({
-      message: "OTP generated successfully",
+      message: "OTP generated and sent via WhatsApp successfully",
       phoneNumber,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 // -----------------------------------------------
 
 exports.verifyOtpLogin = async (req, res) => {

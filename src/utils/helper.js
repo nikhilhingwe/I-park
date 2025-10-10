@@ -9,3 +9,7 @@ exports.toObjectId = (value) => {
 
 exports.generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
+
+exports.normalizeRole = (role) => {
+  return role ? role.toLowerCase() : "";
+};

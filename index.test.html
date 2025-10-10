@@ -1,0 +1,737 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.io Chat Test (All Roles)</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+      }
+      input,
+      button {
+        margin: 5px 0;
+      }
+      .chat-item {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Socket.io Chat Test (All Roles)</h1>
+
+    <label>JWT Token:</label><br />
+    <input
+      id="tokenInput"
+      type="text"
+      size="80"
+      placeholder="Paste your JWT here"
+    /><br />
+
+    <button id="connectBtn">Connect</button>
+    <button id="fetchChatsBtn" disabled>Fetch Chat List</button><br />
+
+    <h3>Chats:</h3>
+    <ul id="chatList"></ul>
+
+    <label>Message:</label><br />
+    <input
+      id="messageInput"
+      type="text"
+      placeholder="Type a message"
+      size="50"
+    />
+    <button id="sendMsgBtn" disabled>Send Message</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script>
+      let socket;
+      let currentChatId = null;
+      let currentChatRole = null;
+
+      const output = document.getElementById("output");
+      const connectBtn = document.getElementById("connectBtn");
+      const fetchChatsBtn = document.getElementById("fetchChatsBtn");
+      const sendMsgBtn = document.getElementById("sendMsgBtn");
+      const tokenInput = document.getElementById("tokenInput");
+      const chatListElem = document.getElementById("chatList");
+      const messageInput = document.getElementById("messageInput");
+
+      function appendOutput(msg) {
+        output.textContent += msg + "\n";
+        output.scrollTop = output.scrollHeight;
+      }
+
+      connectBtn.addEventListener("click", () => {
+        const token = tokenInput.value.trim();
+        if (!token) return alert("Please provide a JWT token.");
+
+        socket = io("http://localhost:9090"); // Change port if needed
+
+        socket.on("connect", () => {
+          appendOutput(`✅ Connected! Socket ID: ${socket.id}`);
+          socket.emit("credentials", token);
+          fetchChatsBtn.disabled = false;
+          sendMsgBtn.disabled = false;
+        });
+
+        socket.on("disconnect", (reason) => {
+          appendOutput(`❌ Disconnected: ${reason}`);
+          fetchChatsBtn.disabled = true;
+          sendMsgBtn.disabled = true;
+        });
+
+        socket.on("chatList", (chats) => {
+          chatListElem.innerHTML = "";
+          chats.forEach((chat) => {
+            const li = document.createElement("li");
+            li.textContent = `${chat.name} (${chat.role})`;
+            li.classList.add("chat-item");
+            li.addEventListener("click", () => joinChat(chat._id, chat.role));
+            chatListElem.appendChild(li);
+          });
+          appendOutput(`📨 Chat list updated (${chats.length} chats)`);
+        });
+
+        socket.on("chatHistory", (messages) => {
+          appendOutput("💬 Chat History:");
+          messages.forEach((msg) => {
+            appendOutput(`[${msg.sender.userModel}] ${msg.text}`);
+          });
+        });
+
+        socket.on("newMessage", (msg) => {
+          appendOutput(`[New] ${msg.sender.userModel}: ${msg.text}`);
+        });
+
+        socket.on("error", (err) => {
+          appendOutput(`❌ Error: ${err.message}`);
+        });
+      });
+
+      fetchChatsBtn.addEventListener("click", () => {
+        socket.emit("fetchChatList");
+      });
+
+      function joinChat(chatUserId, chatUserRole) {
+        currentChatId = chatUserId;
+        currentChatRole = chatUserRole;
+        socket.emit("joinChat", chatUserId, chatUserRole);
+        appendOutput(`📥 Joined chat with ${chatUserRole} (${chatUserId})`);
+      }
+
+      sendMsgBtn.addEventListener("click", () => {
+        if (!currentChatId) return alert("Join a chat first.");
+        const text = messageInput.value.trim();
+        if (!text) return;
+        socket.emit("sendMessage", {
+          chatUserId: currentChatId,
+          chatUserRole: currentChatRole,
+          text,
+        });
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.io Multi-role Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+      input,
+      button,
+      select {
+        margin: 5px 0;
+        padding: 5px;
+      }
+      .chat-item {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Multi-role Chat Test</h1>
+
+    <label>Select Role:</label><br />
+    <select id="roleSelect">
+      <option value="superadmin">Super Admin</option>
+      <option value="hotel">Hotel</option>
+      <option value="branch">Branch</option>
+      <option value="branchgroup">Branch Group</option>
+      <option value="valleyboy">Valley Boy</option>
+      <option value="user">User</option></select
+    ><br />
+
+    <label>JWT Token:</label><br />
+    <input
+      id="tokenInput"
+      type="text"
+      size="80"
+      placeholder="Paste your JWT here"
+    /><br />
+
+    <button id="connectBtn">Connect</button>
+    <button id="fetchChatsBtn" disabled>Fetch Chat List</button><br />
+
+    <h3>Available Chats:</h3>
+    <ul id="chatList"></ul>
+
+    <label>Message:</label><br />
+    <input
+      id="messageInput"
+      type="text"
+      size="50"
+      placeholder="Type a message"
+    />
+    <button id="sendMsgBtn" disabled>Send Message</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script>
+      let socket;
+      let currentChatId = null;
+      let currentChatRole = null;
+
+      const output = document.getElementById("output");
+      const tokenInput = document.getElementById("tokenInput");
+      const roleSelect = document.getElementById("roleSelect");
+      const chatListElem = document.getElementById("chatList");
+      const messageInput = document.getElementById("messageInput");
+      const connectBtn = document.getElementById("connectBtn");
+      const fetchChatsBtn = document.getElementById("fetchChatsBtn");
+      const sendMsgBtn = document.getElementById("sendMsgBtn");
+
+      function appendOutput(msg) {
+        output.textContent += msg + "\n";
+        output.scrollTop = output.scrollHeight;
+      }
+
+      connectBtn.addEventListener("click", () => {
+        const token = tokenInput.value.trim();
+        if (!token) return alert("Please provide a JWT token.");
+
+        socket = io("http://localhost:5000", {
+          transports: ["websocket", "polling"],
+        });
+
+        socket.on("connect", () => {
+          appendOutput(`✅ Connected! Socket ID: ${socket.id}`);
+          socket.emit("credentials", token);
+          fetchChatsBtn.disabled = false;
+          sendMsgBtn.disabled = false;
+        });
+
+        socket.on("disconnect", (reason) => {
+          appendOutput(`❌ Disconnected: ${reason}`);
+          fetchChatsBtn.disabled = true;
+          sendMsgBtn.disabled = true;
+        });
+
+        socket.on("chatList", (chats) => {
+          chatListElem.innerHTML = "";
+          chats.forEach((chat) => {
+            const li = document.createElement("li");
+            li.textContent = `${chat.name} (${chat.role})`;
+            li.classList.add("chat-item");
+            li.addEventListener("click", () => joinChat(chat._id, chat.role));
+            chatListElem.appendChild(li);
+          });
+          appendOutput(`📨 Chat list updated (${chats.length} chats)`);
+        });
+
+        socket.on("chatHistory", (messages) => {
+          appendOutput("💬 Chat History:");
+          messages.forEach((msg) => {
+            appendOutput(`[${msg.sender.userModel}] ${msg.text}`);
+          });
+        });
+
+        socket.on("newMessage", (msg) => {
+          appendOutput(`[New] ${msg.sender.userModel}: ${msg.text}`);
+        });
+
+        socket.on("error", (err) => {
+          appendOutput(`❌ Error: ${err.message}`);
+        });
+      });
+
+      fetchChatsBtn.addEventListener("click", () => {
+        socket.emit("fetchChatList");
+      });
+
+      function joinChat(chatId, chatRole) {
+        currentChatId = chatId;
+        currentChatRole = chatRole;
+        socket.emit("joinChat", chatId, chatRole);
+        appendOutput(`📥 Joined chat with ${chatRole} (${chatId})`);
+      }
+
+      sendMsgBtn.addEventListener("click", () => {
+        if (!currentChatId) return alert("Join a chat first.");
+        const text = messageInput.value.trim();
+        if (!text) return;
+        socket.emit("sendMessage", {
+          chatUserId: currentChatId,
+          chatUserRole: currentChatRole,
+          text,
+        });
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.io Multi-Role Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+      }
+      input,
+      button,
+      select {
+        margin: 5px 0;
+      }
+      .chat-item {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Multi-Role Chat Test</h1>
+
+    <label>Select Role:</label><br />
+    <select id="roleSelect">
+      <option value="superadmin">SuperAdmin</option>
+      <option value="hotel">Hotel</option>
+      <option value="branch">Branch</option>
+      <option value="branchgroup">BranchGroup</option>
+      <option value="valleyboy">ValleyBoy</option>
+      <option value="user">User</option></select
+    ><br />
+
+    <label>JWT Token:</label><br />
+    <input
+      id="tokenInput"
+      type="text"
+      size="80"
+      placeholder="Paste JWT here"
+    /><br />
+
+    <button id="connectBtn">Connect</button>
+    <button id="fetchChatsBtn" disabled>Fetch Chat List</button><br />
+
+    <h3>Chats:</h3>
+    <ul id="chatList"></ul>
+
+    <label>Message:</label><br />
+    <input id="messageInput" type="text" placeholder="Type message" size="50" />
+    <button id="sendMsgBtn" disabled>Send Message</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script>
+      let socket;
+      let currentChatId = null;
+      let currentChatRole = null;
+      const output = document.getElementById("output");
+      const connectBtn = document.getElementById("connectBtn");
+      const fetchChatsBtn = document.getElementById("fetchChatsBtn");
+      const sendMsgBtn = document.getElementById("sendMsgBtn");
+      const tokenInput = document.getElementById("tokenInput");
+      const chatListElem = document.getElementById("chatList");
+      const messageInput = document.getElementById("messageInput");
+      const roleSelect = document.getElementById("roleSelect");
+
+      function appendOutput(msg) {
+        output.textContent += msg + "\n";
+        output.scrollTop = output.scrollHeight;
+      }
+
+      connectBtn.addEventListener("click", () => {
+        const token = tokenInput.value.trim();
+        if (!token) return alert("Please provide a JWT token.");
+
+        socket = io("http://localhost:5000", {
+          transports: ["websocket", "polling"],
+        });
+
+        socket.on("connect", () => {
+          appendOutput(`✅ Connected! Socket ID: ${socket.id}`);
+          socket.emit("credentials", token);
+          fetchChatsBtn.disabled = false;
+          sendMsgBtn.disabled = false;
+        });
+
+        socket.on("disconnect", (reason) => {
+          appendOutput(`❌ Disconnected: ${reason}`);
+          fetchChatsBtn.disabled = true;
+          sendMsgBtn.disabled = true;
+        });
+
+        socket.on("error", (data) => {
+          appendOutput(`❌ Error: ${data.message}`);
+        });
+
+        socket.on("chatList", (chats) => {
+          chatListElem.innerHTML = "";
+          chats.forEach((chat) => {
+            const li = document.createElement("li");
+            li.textContent = `${chat.name} (${chat.role})`;
+            li.classList.add("chat-item");
+            li.addEventListener("click", () => joinChat(chat._id, chat.role));
+            chatListElem.appendChild(li);
+          });
+          appendOutput(`📨 Chat list updated (${chats.length} chats)`);
+        });
+
+        socket.on("chatHistory", (messages) => {
+          appendOutput("💬 Chat History:");
+          messages.forEach((msg) => {
+            appendOutput(`[${msg.sender.userModel}] ${msg.text}`);
+          });
+        });
+
+        socket.on("newMessage", (msg) => {
+          appendOutput(`[New] ${msg.sender.userModel}: ${msg.text}`);
+        });
+      });
+
+      fetchChatsBtn.addEventListener("click", () => {
+        socket.emit("fetchChatList");
+      });
+
+      function joinChat(chatUserId, chatUserRole) {
+        currentChatId = chatUserId;
+        currentChatRole = chatUserRole;
+        socket.emit("joinChat", chatUserId, chatUserRole);
+        appendOutput(`📥 Joined chat with ${chatUserRole} (${chatUserId})`);
+      }
+
+      sendMsgBtn.addEventListener("click", () => {
+        if (!currentChatId) return alert("Join a chat first.");
+        const text = messageInput.value.trim();
+        if (!text) return;
+        socket.emit("sendMessage", {
+          chatUserId: currentChatId,
+          chatUserRole: currentChatRole,
+          text,
+        });
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.io Chat Test - All Roles</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+      }
+      input,
+      button {
+        margin: 5px 0;
+      }
+      .chat-item {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Socket.io Chat Test - All Roles</h1>
+
+    <label>JWT Token:</label><br />
+    <input
+      id="tokenInput"
+      type="text"
+      size="80"
+      placeholder="Paste your JWT here"
+    /><br />
+
+    <button id="connectBtn">Connect</button>
+    <button id="fetchChatsBtn" disabled>Fetch Chat List</button><br />
+
+    <h3>Chats:</h3>
+    <ul id="chatList"></ul>
+
+    <label>Message:</label><br />
+    <input
+      id="messageInput"
+      type="text"
+      size="50"
+      placeholder="Type a message"
+    />
+    <button id="sendMsgBtn" disabled>Send Message</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script>
+      let socket;
+      let currentChatId = null;
+      let currentChatRole = null;
+      const output = document.getElementById("output");
+      const connectBtn = document.getElementById("connectBtn");
+      const fetchChatsBtn = document.getElementById("fetchChatsBtn");
+      const sendMsgBtn = document.getElementById("sendMsgBtn");
+      const tokenInput = document.getElementById("tokenInput");
+      const chatListElem = document.getElementById("chatList");
+      const messageInput = document.getElementById("messageInput");
+
+      function appendOutput(msg) {
+        output.textContent += msg + "\n";
+        output.scrollTop = output.scrollHeight;
+      }
+
+      connectBtn.addEventListener("click", () => {
+        const token = tokenInput.value.trim();
+        if (!token) return alert("Please provide a JWT token.");
+
+        socket = io("http://localhost:5000", {
+          transports: ["websocket", "polling"],
+        });
+
+        socket.on("connect", () => {
+          appendOutput(`✅ Connected! Socket ID: ${socket.id}`);
+          socket.emit("credentials", token);
+          fetchChatsBtn.disabled = false;
+          sendMsgBtn.disabled = false;
+        });
+
+        socket.on("disconnect", (reason) => {
+          appendOutput(`❌ Disconnected: ${reason}`);
+          fetchChatsBtn.disabled = true;
+          sendMsgBtn.disabled = true;
+        });
+
+        socket.on("chatList", (chats) => {
+          chatListElem.innerHTML = "";
+          chats.forEach((chat) => {
+            const li = document.createElement("li");
+            li.textContent = `${chat.name} (${chat.role})`;
+            li.classList.add("chat-item");
+            li.addEventListener("click", () => joinChat(chat._id, chat.role));
+            chatListElem.appendChild(li);
+          });
+          appendOutput(`📨 Chat list updated (${chats.length} chats)`);
+        });
+
+        socket.on("chatHistory", (messages) => {
+          appendOutput("💬 Chat History:");
+          messages.forEach((msg) => {
+            appendOutput(`[${msg.sender.userModel}] ${msg.text}`);
+          });
+        });
+
+        socket.on("newMessage", (msg) => {
+          appendOutput(`[New] ${msg.sender.userModel}: ${msg.text}`);
+        });
+
+        socket.on("error", (err) => {
+          appendOutput(`❌ Error: ${err.message || JSON.stringify(err)}`);
+        });
+      });
+
+      fetchChatsBtn.addEventListener("click", () => {
+        if (!socket) return alert("Connect first.");
+        socket.emit("fetchChatList");
+      });
+
+      function joinChat(chatUserId, chatUserRole) {
+        if (!socket) return;
+        currentChatId = chatUserId;
+        currentChatRole = chatUserRole;
+        socket.emit("joinChat", chatUserId, chatUserRole);
+        appendOutput(`📥 Joined chat with ${chatUserRole} (${chatUserId})`);
+      }
+
+      sendMsgBtn.addEventListener("click", () => {
+        if (!socket) return alert("Connect first.");
+        if (!currentChatId) return alert("Join a chat first.");
+        const text = messageInput.value.trim();
+        if (!text) return;
+        socket.emit("sendMessage", {
+          chatUserId: currentChatId,
+          chatUserRole: currentChatRole,
+          text,
+        });
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h1>Socket.io Chat Test</h1>
+
+    <label>JWT Token:</label><br />
+    <input
+      id="tokenInput"
+      type="text"
+      size="80"
+      placeholder="Paste JWT here"
+    /><br />
+    <button id="connectBtn">Connect</button>
+    <button id="fetchChatsBtn" disabled>Fetch Chats</button><br />
+
+    <h3>Chats:</h3>
+    <ul id="chatList"></ul>
+
+    <label>Message:</label><br />
+    <input id="messageInput" type="text" size="50" />
+    <button id="sendMsgBtn" disabled>Send</button>
+
+    <h3>Output:</h3>
+    <pre id="output"></pre>
+
+    <script>
+      let socket, currentChatId, currentChatRole;
+      const output = document.getElementById("output");
+      const tokenInput = document.getElementById("tokenInput");
+      const connectBtn = document.getElementById("connectBtn");
+      const fetchChatsBtn = document.getElementById("fetchChatsBtn");
+      const sendMsgBtn = document.getElementById("sendMsgBtn");
+      const chatListElem = document.getElementById("chatList");
+      const messageInput = document.getElementById("messageInput");
+
+      function log(msg) {
+        output.textContent += msg + "\n";
+        output.scrollTop = output.scrollHeight;
+      }
+
+      connectBtn.addEventListener("click", () => {
+        const token = tokenInput.value.trim();
+        if (!token) return alert("JWT required");
+
+        socket = io("http://localhost:5000", {
+          transports: ["websocket", "polling"],
+        });
+
+        socket.on("connect", () => {
+          log(`✅ Connected: ${socket.id}`);
+          socket.emit("credentials", token);
+          fetchChatsBtn.disabled = false;
+          sendMsgBtn.disabled = false;
+        });
+
+        socket.on("authSuccess", (data) => log("🔐 " + data.message));
+        socket.on("authError", (data) => log("❌ " + data.message));
+
+        socket.on("disconnect", (reason) => log(`❌ Disconnected: ${reason}`));
+        socket.on("connect_error", (err) =>
+          log("❌ Connect error: " + err.message)
+        );
+
+        socket.on("chatList", (chats) => {
+          chatListElem.innerHTML = "";
+          chats.forEach((chat) => {
+            const li = document.createElement("li");
+            li.textContent = `${chat.name} (${chat.role})`;
+            li.style.cursor = "pointer";
+            li.addEventListener("click", () => {
+              currentChatId = chat._id;
+              currentChatRole = chat.role;
+              socket.emit("joinChat", chat._id, chat.role);
+              log(`📥 Joined chat with ${chat.name}`);
+            });
+            chatListElem.appendChild(li);
+          });
+          log(`📨 ${chats.length} chats loaded`);
+        });
+
+        socket.on("chatHistory", (messages) => {
+          log("💬 Chat History:");
+          messages.forEach((msg) =>
+            log(`[${msg.sender.userModel}] ${msg.text}`)
+          );
+        });
+
+        socket.on("newMessage", (msg) =>
+          log(`[New] ${msg.sender.userModel}: ${msg.text}`)
+        );
+      });
+
+      fetchChatsBtn.addEventListener("click", () => {
+        socket.emit("fetchChatList");
+      });
+
+      sendMsgBtn.addEventListener("click", () => {
+        const text = messageInput.value.trim();
+        if (!currentChatId || !text) return alert("Join a chat & type message");
+        socket.emit("sendMessage", {
+          chatUserId: currentChatId,
+          chatUserRole: currentChatRole,
+          text,
+        });
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html>

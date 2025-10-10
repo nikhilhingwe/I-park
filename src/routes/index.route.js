@@ -11,6 +11,7 @@ const branchRoutes = require("./branch.route");
 const branchGroupRoutes = require("./branchGroup.route");
 const parkingRoutes = require("./parking.routes");
 const authenticate = require("../middleware/authMiddleware");
+const chatRoutes = require("../routes/chat.routes");
 
 router.use("/superadmin", superAdminRoutes);
 router.use("/user", userRoutes);
@@ -19,6 +20,7 @@ router.use("/hotel", hotelRoutes);
 router.use("/branchgroup", branchGroupRoutes);
 router.use("/branch", branchRoutes);
 router.use("/parking", parkingRoutes);
+router.use("/chat", chatRoutes);
 
 // Prefix routes
 // router.use("/users", userRoutes);
