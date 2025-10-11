@@ -441,7 +441,7 @@
   </body>
 </html> -->
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -609,3 +609,102 @@
     </script>
   </body>
 </html>
+
+-->
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  // Connect to Socket.IO server
+  const socket = io("http://localhost:5000"); // replace with your server URL
+
+  // Your JWT token
+  const token = "YOUR_JWT_TOKEN_HERE";
+
+  // Authenticate
+  socket.on("connect", () => {
+    console.log("Connected to server:", socket.id);
+    socket.emit("credentials", token);
+  });
+
+  socket.on("authenticated", (data) => {
+    console.log("✅ Authenticated:", data.message);
+
+    // Fetch chat list after auth
+    socket.emit("fetchChatList");
+  });
+
+  // ------------------- Chat UI -------------------
+  const chatWindow = document.getElementById("chatWindow");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+
+  function formatTime() {
+    const now = new Date();
+    return (
+      now.getHours().toString().padStart(2, "0") +
+      ":" +
+      now.getMinutes().toString().padStart(2, "0")
+    );
+  }
+
+  function addMessage(message, type = "incoming") {
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("message", type);
+    msgDiv.innerHTML = `<div>${message}</div><div class="timestamp">${formatTime()}</div>`;
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  // ------------------- Incoming WhatsApp messages -------------------
+  socket.on("incomingWhatsAppMessage", (msg) => {
+    console.log("📩 WhatsApp message received:", msg);
+    const sender =
+      msg.sender?.userModel === "user"
+        ? `User`
+        : msg.valleyBoyName || "Valley Boy";
+    addMessage(`${sender}: ${msg.text}`, "incoming");
+  });
+
+  // ------------------- Normal chat messages -------------------
+  socket.on("newMessage", (msg) => {
+    const sender =
+      msg.sender?.userModel === "user" ? "User" : msg.sender?.userModel;
+    addMessage(`${sender}: ${msg.text}`, "incoming");
+  });
+
+  socket.on("chatHistory", (messages) => {
+    messages.forEach((msg) => {
+      const type =
+        msg.sender.userId === "YOUR_USER_ID" ? "outgoing" : "incoming";
+      addMessage(`${msg.sender.userModel}: ${msg.text}`, type);
+    });
+  });
+
+  socket.on("chatList", (contacts) => {
+    console.log("📇 Chat list:", contacts);
+  });
+
+  // ------------------- Send message -------------------
+  function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    // Replace with selected chat info
+    const selectedChatUserId = "RECEIVER_USER_ID";
+    const selectedChatUserRole = "user"; // e.g., user, hotel, valleyboy
+
+    socket.emit("sendMessage", {
+      chatUserId: selectedChatUserId,
+      chatUserRole: selectedChatUserRole,
+      text,
+    });
+
+    addMessage(`You: ${text}`, "outgoing");
+    chatInput.value = "";
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+</script>
