@@ -70,10 +70,39 @@ function initSocket(server) {
     let user = null;
 
     // Authenticate token
-    socket.on("credentials", (token) => {
+    // socket.on("credentials", (token) => {
+    //   if (!token) return socket.disconnect();
+    //   try {
+    //     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    //     if (!payload?.id || !payload?.role) return socket.disconnect();
+
+    //     user = {
+    //       id: payload.id,
+    //       email: payload.email,
+    //       role: normalizeRole(payload.role),
+    //     };
+
+    //     if (!user.role) return socket.disconnect();
+
+    //     // Track Valley Boy sockets
+    //     if (user.role === "valleyboy") {
+    //       valleyBoySockets.set(user.id, socket.id);
+    //       console.log(`📌 Valley Boy connected: ${user.id}`);
+    //     }
+
+    //     socket.emit("authenticated", { message: "Token valid" });
+    //   } catch (err) {
+    //     console.log("❌ Invalid token:", err.message);
+    //     socket.disconnect();
+    //   }
+    // });
+
+    socket.on("credentials", async (token) => {
       if (!token) return socket.disconnect();
+
       try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
+
         if (!payload?.id || !payload?.role) return socket.disconnect();
 
         user = {
@@ -84,10 +113,30 @@ function initSocket(server) {
 
         if (!user.role) return socket.disconnect();
 
-        // Track Valley Boy sockets
+        // ✅ Valley Boy offline/online tracking
         if (user.role === "valleyboy") {
           valleyBoySockets.set(user.id, socket.id);
           console.log(`📌 Valley Boy connected: ${user.id}`);
+
+          // ✅ Fetch undelivered messages for this Valley Boy
+          const pendingMessages = await Message.find({
+            deliveredTo: { $ne: user.id },
+            chatId: {
+              $in: await Parking.find({ valleyBoyId: user.id }).distinct("_id"),
+            },
+          }).sort({ createdAt: 1 });
+
+          for (const msg of pendingMessages) {
+            io.to(socket.id).emit("incomingWhatsAppMessage", msg);
+
+            // Mark as delivered
+            msg.deliveredTo.push(user.id);
+            await msg.save();
+          }
+
+          console.log(
+            `📨 Delivered ${pendingMessages.length} pending messages to Valley Boy ${user.id}`
+          );
         }
 
         socket.emit("authenticated", { message: "Token valid" });
@@ -96,7 +145,6 @@ function initSocket(server) {
         socket.disconnect();
       }
     });
-
     // ------------------- fetchChatList -------------------
     socket.on("fetchChatList", async () => {
       try {
