@@ -289,7 +289,7 @@
   </body>
 </html> -->
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -434,6 +434,173 @@
         const text = chatInput.value.trim();
         if (!text) return;
         socket.emit("valleyBoyMessage", { message: text }); // adjust server event if needed
+        addMessage(`You: ${text}`, "outgoing");
+        chatInput.value = "";
+      }
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Valley Boy Chat</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        margin-top: 50px;
+      }
+      #chatContainer {
+        width: 400px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      #chatWindow {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .message {
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 20px;
+        word-wrap: break-word;
+        position: relative;
+      }
+      .incoming {
+        background: #e1ffc7;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+      }
+      .outgoing {
+        background: #dcf8c6;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+      }
+      .timestamp {
+        font-size: 10px;
+        color: #555;
+        margin-top: 2px;
+        text-align: right;
+      }
+      #inputContainer {
+        display: flex;
+        border-top: 1px solid #ccc;
+      }
+      #chatInput {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        outline: none;
+      }
+      #sendBtn {
+        padding: 10px 15px;
+        border: none;
+        background: #128c7e;
+        color: white;
+        cursor: pointer;
+      }
+      #sendBtn:hover {
+        background: #075e54;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chatContainer">
+      <div id="chatWindow"></div>
+      <div id="inputContainer">
+        <input type="text" id="chatInput" placeholder="Type message..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const socket = io("http://localhost:5000"); // replace with your server URL
+
+      // Replace with your JWT token
+      const token = "<YOUR_JWT_TOKEN_HERE>";
+
+      let parkingIdForTest = "68e746c713a231e42fad72f4"; // update with test parkingId
+
+      socket.on("connect", () => {
+        console.log("✅ Connected as Valley Boy:", socket.id);
+        socket.emit("credentials", token);
+      });
+
+      socket.on("authenticated", (data) => {
+        console.log("✅ Authentication successful:", data);
+      });
+
+      socket.on("error", (data) => {
+        console.error("❌ Socket error:", data);
+      });
+
+      // Helper: format timestamp
+      function formatTime(dateStr) {
+        const d = dateStr ? new Date(dateStr) : new Date();
+        return (
+          d.getHours().toString().padStart(2, "0") +
+          ":" +
+          d.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      // Add message to chat window
+      function addMessage(message, type = "incoming", time = null) {
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", type);
+        msgDiv.innerHTML = `<div>${message}</div>
+                          <div class="timestamp">${formatTime(time)}</div>`;
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      // Listen for incoming WhatsApp messages
+      socket.on("incomingWhatsAppMessage", (data) => {
+        console.log("📩 WhatsApp message received:", data);
+        addMessage(`${data.from}: ${data.message}`, "incoming", data.createdAt);
+      });
+
+      // Listen for normal chat messages
+      socket.on("newMessage", (data) => {
+        addMessage(`User: ${data.text}`, "incoming", data.createdAt);
+      });
+
+      // Send message
+      const chatInput = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      sendBtn.addEventListener("click", sendMessage);
+      chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+
+      function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        // Send WhatsApp reply
+        socket.emit("sendWhatsAppReply", {
+          from: "ValleyBoyTest",
+          message: text,
+          parkingId: parkingIdForTest,
+        });
+
         addMessage(`You: ${text}`, "outgoing");
         chatInput.value = "";
       }
