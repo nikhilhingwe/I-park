@@ -1,0 +1,442 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Valley Boy Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        margin-top: 50px;
+      }
+
+      #chatContainer {
+        width: 400px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #chatWindow {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .message {
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 20px;
+        position: relative;
+        word-wrap: break-word;
+      }
+
+      .incoming {
+        background: #e1ffc7;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+      }
+
+      .outgoing {
+        background: #dcf8c6;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+      }
+
+      .timestamp {
+        font-size: 10px;
+        color: #555;
+        margin-top: 2px;
+        text-align: right;
+      }
+
+      #inputContainer {
+        display: flex;
+        border-top: 1px solid #ccc;
+      }
+
+      #chatInput {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        outline: none;
+        border-radius: 0;
+      }
+
+      #sendBtn {
+        padding: 10px 15px;
+        border: none;
+        background: #128c7e;
+        color: white;
+        cursor: pointer;
+      }
+
+      #sendBtn:hover {
+        background: #075e54;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chatContainer">
+      <div id="chatWindow"></div>
+      <div id="inputContainer">
+        <input type="text" id="chatInput" placeholder="Type message..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io("http://localhost:3000"); // replace with your server URL
+      const chatWindow = document.getElementById("chatWindow");
+      const chatInput = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      const token =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZTc0NWY5MTNhMjMxZTQyZmFkNzJlMSIsImVtYWlsIjoidmFsbGVwdW5lQGdtYWlsLmNvbSIsImhvdGVsSWQiOiI2OGU3NDRhZjEzYTIzMWU0MmZhZDcyYWQiLCJicmFuY2hJZCI6IjY4ZTc0NTgyMTNhMjMxZTQyZmFkNzJjZSIsInJvbGUiOjUsImlhdCI6MTc2MDE1ODUzNSwiZXhwIjoxNzYwMjQ0OTM1fQ.RV9SdKaFpoFtyeCIA5Qug16RS0Qgnm0PQCoL52rOHGQ"; // replace with your JWT
+
+      // Authenticate when connected
+      socket.on("connect", () => {
+        console.log("Connected as Valley Boy:", socket.id);
+        socket.emit("authenticate", { token });
+      });
+
+      // Helper to format time
+      function formatTime() {
+        const now = new Date();
+        return (
+          now.getHours().toString().padStart(2, "0") +
+          ":" +
+          now.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      // Add message to chat window
+      function addMessage(message, type = "incoming") {
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", type);
+
+        const content = `<div>${message}</div>
+                     <div class="timestamp">${formatTime()}</div>`;
+        msgDiv.innerHTML = content;
+
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      // Listen for incoming WhatsApp messages
+      socket.on("incomingWhatsAppMessage", (data) => {
+        console.log("📩 WhatsApp message received:", data);
+        addMessage(`${data.from}: ${data.message}`, "incoming");
+      });
+
+      // Send Valley Boy message
+      sendBtn.addEventListener("click", () => {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        socket.emit("valleyBoyMessage", { message });
+        addMessage(`You: ${message}`, "outgoing");
+        chatInput.value = "";
+      });
+
+      chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendBtn.click();
+      });
+    </script>
+  </body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.IO Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #chatList button {
+        margin: 5px;
+      }
+      #messages {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 200px;
+        overflow-y: scroll;
+        margin-bottom: 10px;
+      }
+      #chatInput {
+        width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Socket.IO Chat Test</h1>
+
+    <div>
+      <label>JWT Token:</label>
+      <input type="text" id="token" style="width: 400px" />
+      <button onclick="authenticate()">Authenticate</button>
+    </div>
+
+    <hr />
+
+    <div>
+      <button onclick="fetchChatList()">Fetch Chat List</button>
+      <div id="chatList"></div>
+    </div>
+
+    <hr />
+
+    <div>
+      <h3>Chat Room</h3>
+      <div id="messages"></div>
+      <input type="text" id="chatInput" placeholder="Type message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+      // Connect to your Socket.IO server
+      const socket = io("http://localhost:5000"); // Change port if your server is different
+
+      let currentChatUserId = null;
+      let currentChatUserRole = null;
+
+      socket.on("connect", () => {
+        console.log("✅ Connected to server", socket.id);
+      });
+
+      socket.on("authenticated", (data) => {
+        console.log("✅ Authenticated:", data);
+      });
+
+      socket.on("chatList", (list) => {
+        console.log("📋 Chat List:", list);
+        const container = document.getElementById("chatList");
+        container.innerHTML = "";
+        list.forEach((contact) => {
+          const btn = document.createElement("button");
+          btn.textContent = `${contact.name} (${contact.role})`;
+          btn.onclick = () => joinChat(contact._id, contact.role);
+          container.appendChild(btn);
+        });
+      });
+
+      socket.on("chatHistory", (messages) => {
+        console.log("📝 Chat History:", messages);
+        const messagesDiv = document.getElementById("messages");
+        messagesDiv.innerHTML = "";
+        messages.forEach((m) => {
+          const p = document.createElement("p");
+          p.textContent = `[${m.sender.userModel}] ${m.text}`;
+          messagesDiv.appendChild(p);
+        });
+      });
+
+      socket.on("newMessage", (message) => {
+        const messagesDiv = document.getElementById("messages");
+        const p = document.createElement("p");
+        p.textContent = `[${message.sender.userModel}] ${message.text}`;
+        messagesDiv.appendChild(p);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // auto-scroll
+      });
+
+      function authenticate() {
+        const token = document.getElementById("token").value;
+        socket.emit("credentials", token);
+      }
+
+      function fetchChatList() {
+        socket.emit("fetchChatList");
+      }
+
+      function joinChat(userId, role) {
+        currentChatUserId = userId;
+        currentChatUserRole = role;
+        socket.emit("joinChat", userId, role);
+      }
+
+      function sendMessage() {
+        const text = document.getElementById("chatInput").value;
+        if (!currentChatUserId || !currentChatUserRole || !text) return;
+        socket.emit("sendMessage", {
+          chatUserId: currentChatUserId,
+          chatUserRole: currentChatUserRole,
+          text,
+        });
+        document.getElementById("chatInput").value = "";
+      }
+
+      // Allow pressing Enter to send
+      document.getElementById("chatInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Valley Boy Chat</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        margin-top: 50px;
+      }
+      #chatContainer {
+        width: 400px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      #chatWindow {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .message {
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 20px;
+        word-wrap: break-word;
+        position: relative;
+      }
+      .incoming {
+        background: #e1ffc7;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+      }
+      .outgoing {
+        background: #dcf8c6;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+      }
+      .timestamp {
+        font-size: 10px;
+        color: #555;
+        margin-top: 2px;
+        text-align: right;
+      }
+      #inputContainer {
+        display: flex;
+        border-top: 1px solid #ccc;
+      }
+      #chatInput {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        outline: none;
+      }
+      #sendBtn {
+        padding: 10px 15px;
+        border: none;
+        background: #128c7e;
+        color: white;
+        cursor: pointer;
+      }
+      #sendBtn:hover {
+        background: #075e54;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chatContainer">
+      <div id="chatWindow"></div>
+      <div id="inputContainer">
+        <input type="text" id="chatInput" placeholder="Type message..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const socket = io("http://localhost:5000"); // replace with your server URL
+
+      // Replace with your JWT token
+      const token =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZTc0NWY5MTNhMjMxZTQyZmFkNzJlMSIsImVtYWlsIjoidmFsbGVwdW5lQGdtYWlsLmNvbSIsImhvdGVsSWQiOiI2OGU3NDRhZjEzYTIzMWU0MmZhZDcyYWQiLCJicmFuY2hJZCI6IjY4ZTc0NTgyMTNhMjMxZTQyZmFkNzJjZSIsInJvbGUiOjUsImlhdCI6MTc2MDE2MDA3NSwiZXhwIjoxNzYwMjQ2NDc1fQ.cpKlEs0LxWw5SiF-pKEAgMy-7geOWp-O4eWHg5qOSQo";
+
+      // Authenticate Valley Boy
+      socket.on("connect", () => {
+        console.log("Connected as Valley Boy:", socket.id);
+        socket.emit("authenticate", { token });
+      });
+
+      // Helper to format timestamp
+      function formatTime() {
+        const now = new Date();
+        return (
+          now.getHours().toString().padStart(2, "0") +
+          ":" +
+          now.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      // Add message to chat window
+      function addMessage(message, type = "incoming") {
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", type);
+        msgDiv.innerHTML = `<div>${message}</div>
+                        <div class="timestamp">${formatTime()}</div>`;
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      // Listen for WhatsApp messages
+      socket.on("incomingWhatsAppMessage", (data) => {
+        console.log("📩 WhatsApp message received:", data);
+        addMessage(`${data.from}: ${data.message}`, "incoming");
+      });
+
+      // Listen for normal chat messages
+      socket.on("newMessage", (data) => {
+        addMessage(`User: ${data.text}`, "incoming");
+      });
+
+      // Send message
+      const chatInput = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      sendBtn.addEventListener("click", sendMessage);
+      chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+
+      function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        socket.emit("valleyBoyMessage", { message: text }); // adjust server event if needed
+        addMessage(`You: ${text}`, "outgoing");
+        chatInput.value = "";
+      }
+    </script>
+  </body>
+</html>

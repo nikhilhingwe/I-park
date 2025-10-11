@@ -12,37 +12,92 @@ const toObjectId = (value) => {
   return null;
 };
 
-exports.updateParkingStatusOnly = async (req, res) => {
-  try {
-    const { status, latitude, longitude } = req.body;
+// exports.updateParkingStatusOnly = async (req, res) => {
+//   try {
+//     const { status, latitude, longitude } = req.body;
 
-    const updateData = { status };
+//     const updateData = { status };
 
-    if (latitude !== undefined && longitude !== undefined) {
-      updateData.location = {
-        type: "Point",
-        coordinates: [parseFloat(longitude), parseFloat(latitude)],
-      };
-    }
+//     if (latitude !== undefined && longitude !== undefined) {
+//       updateData.location = {
+//         type: "Point",
+//         coordinates: [parseFloat(longitude), parseFloat(latitude)],
+//       };
+//     }
 
-    const parking = await Parking.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    });
+//     const parking = await Parking.findByIdAndUpdate(req.params.id, updateData, {
+//       new: true,
+//     });
 
-    if (!parking) return res.status(404).json({ error: "Parking not found" });
+//     if (!parking) return res.status(404).json({ error: "Parking not found" });
 
-    res.status(200).json(parking);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+//     res.status(200).json(parking);
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+
+// exports.waMessageIdToParkingIdMap = new Map();
+
+// async function sendWhatsAppTemplateMessage(
+//   recipientNumber,
+//   vehicleNumber,
+//   userName,
+//   valleyBoyName,
+//   parkingId
+// ) {
+//   try {
+//     const formattedNumber = recipientNumber.replace(/\D/g, "");
+
+//     const body = new URLSearchParams({
+//       apikey: process.env.API_KEY_WABA,
+//       userid: process.env.WABA_USER,
+//       password: process.env.WABA_PASSWORD,
+//       wabaNumber: "918237329243",
+//       msg: `Hello ${userName}, your vehicle (${vehicleNumber}) is now parking. Valley Boy: ${valleyBoyName}. Reply with ID: ${parkingId} for updates.`,
+//       output: "json",
+//       mobile: formattedNumber,
+//       sendMethod: "quick",
+//       msgType: "text",
+//       templatename: "ipark",
+//     });
+
+//     const response = await fetch("https://theultimate.io/WAApi/send", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//       body: body.toString(),
+//     });
+
+//     const data = await response.json();
+//     console.log("Template Message Response:", data);
+
+//     // Store mapping from WhatsApp message ID -> parkingId
+//     if (data?.messages?.[0]?.id) {
+//       const waMessageId = data.messages[0].id;
+//       waMessageIdToParkingIdMap.set(waMessageId, parkingId);
+//     }
+
+//     const text = await response.text();
+//     try {
+//       const data = JSON.parse(text);
+//       console.log("Template Message Response:", data);
+//     } catch {
+//       console.error("Server returned non-JSON response:", text);
+//     }
+//   } catch (err) {
+//     console.error("Error sending template message:", err.message);
+//   }
+// }
+
+exports.waMessageIdToParkingIdMap = new Map();
 
 async function sendWhatsAppTemplateMessage(
   recipientNumber,
   vehicleNumber,
   userName,
   valleyBoyName,
-  parkingId
+  parkingId,
+  parking
 ) {
   try {
     const formattedNumber = recipientNumber.replace(/\D/g, "");
@@ -52,7 +107,7 @@ async function sendWhatsAppTemplateMessage(
       userid: process.env.WABA_USER,
       password: process.env.WABA_PASSWORD,
       wabaNumber: "918237329243",
-      msg: `Hello ${userName}, your vehicle (${vehicleNumber}) is now parking. Valley Boy: ${valleyBoyName}. Reply with ID: ${parkingId} for updates.`,
+      msg: `Hello ${userName}, your vehicle (${vehicleNumber}) is now parking. Valley Boy: ${valleyBoyName}. Reply "send car" or tap the button for updates. ParkingId ${parkingId}`,
       output: "json",
       mobile: formattedNumber,
       sendMethod: "quick",
@@ -66,12 +121,14 @@ async function sendWhatsAppTemplateMessage(
       body: body.toString(),
     });
 
-    const text = await response.text();
-    try {
-      const data = JSON.parse(text);
-      console.log("Template Message Response:", data);
-    } catch {
-      console.error("Server returned non-JSON response:", text);
+    const data = await response.json();
+    console.log("Template Message Response:", data);
+
+    // ✅ Store WhatsApp message ID → parkingId mapping
+    if (data?.messages?.[0]?.id) {
+      const waMessageId = data.messages[0].id;
+      exports.waMessageIdToParkingIdMap.set(waMessageId, parkingId);
+      console.log("Stored mapping:", waMessageId, "->", parkingId);
     }
   } catch (err) {
     console.error("Error sending template message:", err.message);
@@ -112,7 +169,8 @@ exports.updateParkingStatusOnly = async (req, res) => {
         parking.vehicleNumber,
         parking.userName,
         valleyBoy?.name || "Valley Boy",
-        parking._id
+        parking._id,
+        parking
       );
     }
 
