@@ -532,13 +532,15 @@
       const socket = io("http://localhost:5000"); // replace with your server URL
 
       // Replace with your JWT token
-      const token = "<YOUR_JWT_TOKEN_HERE>";
+      const token =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZTc0NWY5MTNhMjMxZTQyZmFkNzJlMSIsImVtYWlsIjoidmFsbGVwdW5lQGdtYWlsLmNvbSIsImhvdGVsSWQiOiI2OGU3NDRhZjEzYTIzMWU0MmZhZDcyYWQiLCJicmFuY2hJZCI6IjY4ZTc0NTgyMTNhMjMxZTQyZmFkNzJjZSIsInJvbGUiOjUsImlhdCI6MTc2MDE3MzI5MCwiZXhwIjoxNzYwMjU5NjkwfQ.wPj21Mi9JWcZN5kkvChJBTExN7AYj_yv7dBgIN2JLSo";
 
       let parkingIdForTest = "68e746c713a231e42fad72f4"; // update with test parkingId
 
       socket.on("connect", () => {
         console.log("✅ Connected as Valley Boy:", socket.id);
         socket.emit("credentials", token);
+        console.log("✅ Connected to server", socket.id);
       });
 
       socket.on("authenticated", (data) => {
