@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const initSocket = require("./config/socket");
 const routes = require("./routes/index.route");
 const setupWhatsAppWebhook = require("./routes/whatsAppwebHook");
+const setupWhatsAppInbound = require("./routes/whatsappInbound");
 
 dotenv.config();
 connectDB();
@@ -18,7 +19,9 @@ app.use(express.json());
 
 app.use("/api", routes);
 // app.post("/api/whatsapp-webhook", whatsappWebhook);
+// app.post("/api/whatsapp-webhook", setupWhatsAppWebhook(io));
 app.post("/api/whatsapp-webhook", setupWhatsAppWebhook(io));
+app.post("/api/whatsapp-incoming", setupWhatsAppInbound(io));
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
